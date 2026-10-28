@@ -20,6 +20,7 @@ parses Rime schema/Lua. It treats the index strictly as data.
 ## 2. Interface version and index format
 
 - Interface contract version: **1.0.0-rc1** (`docs/interfaces/README.md`).
+- Delivery commit: `76a83eeb2558e12c7af592179ac46808c2d1b78e`.
 - Index format: **v1.0** (`abc::kIndexFormatVersion == 0x00010000`,
   magic `"ABCDIX1\0"`).
 

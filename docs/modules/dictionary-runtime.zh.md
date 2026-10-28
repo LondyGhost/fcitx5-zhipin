@@ -19,6 +19,7 @@
 ## 2. 接口版本与索引格式
 
 - 接口契约版本：**1.0.0-rc1**（`docs/interfaces/README.md`）。
+- 交付提交号：`76a83eeb2558e12c7af592179ac46808c2d1b78e`。
 - 索引格式：**v1.0**（`abc::kIndexFormatVersion == 0x00010000`，
   魔数 `"ABCDIX1\0"`）。
 
