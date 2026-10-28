@@ -1,0 +1,6 @@
+*.local.md
+.env
+.env.*
+credentials*
+*.key
+*.pem
