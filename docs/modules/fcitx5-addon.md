@@ -128,3 +128,87 @@ export FCITX_ADDON_DIRS="$HOME/.local/lib/fcitx5:/usr/lib/fcitx5"
 - 索引不可用时 addon 仍注册，但按键全部转发。
 - 真实 Wayland 应用验收不属于本模块，由 A6 执行。
 - X11 或本模块的模拟测试不能作为 Wayland 通过证据。
+
+## 交付记录
+
+| 项 | 值 |
+|---|---|
+| 任务 | A4 fcitx5 addon 适配层 |
+| 提交 | `de63841`（分支 `master`） |
+| 接口契约 | 1.0.0（rc1，未改公共头） |
+| fcitx5 | 5.1.23（`pkg-config --modversion Fcitx5Core`） |
+| API | `Fcitx5Core` / `Fcitx5Utils` 5.1.23，C++20 |
+| 编译器 | 目标机 GCC 16.2.1，CMake 4.4.4，Ninja 1.13.2 |
+| 系统 | CatOS（Arch 系）x86_64，内核 7.2.11-arch1-1 |
+
+### 变更文件
+
+只含 A4 所有权路径，共 18 个文件：
+
+- `source/fcitx5-addon/`：`CMakeLists.txt`、`abcengine.h`、`abcengine.cpp`、
+  `keyconv.h`、`keyconv.cpp`、`ui_mapping.h`、`ui_mapping.cpp`、
+  `abc-addon.conf`、`abc-im.conf`
+- `tests/fcitx5-addon/`：`CMakeLists.txt`、`test_keyconv.cpp`、
+  `test_ui_mapping.cpp`、`test_session_driver.cpp`、`test_install_paths.py`
+- `docs/modules/fcitx5-addon.md`
+- `deploy/fcitx5-addon/`：`install-user.sh`、`uninstall-user.py`、
+  `install-manifest.md`
+
+未改核心、词典、公共头、根 `CMakeLists.txt` 和其他任务文件。
+
+### 构建与测试
+
+目标机 `~/abc-work/src`，2026-10-28：
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build --target abc_fcitx5_addon abc_addon_keyconv \
+  abc_addon_ui_mapping abc_addon_session_driver
+ctest --test-dir build -R abc_addon --output-on-failure
+```
+
+结果：4/4 通过（`abc_addon_keyconv`、`abc_addon_ui_mapping`、
+`abc_addon_session_driver`、`abc_addon_install_paths`）。
+
+`abc.so` 链接 `libFcitx5Core.so.7`、`libFcitx5Config.so.6`、
+`libFcitx5Utils.so.2`。源码检索无 XIM、XTest、xdotool、`XSendEvent`。
+
+### 注册
+
+隔离 `HOME=/home/londy/abc-work/fcitx-home` 启动 fcitx5 5.1.23，
+`FCITX_ADDON_DIRS` 指向 `/home/londy/abc-work/prefix/lib/fcitx5:/usr/lib/fcitx5`，
+`FCITX_DATA_DIRS` 指向该前缀的 `share` 加 `/usr/share`。
+
+- `AvailableInputMethods` 含 `abc` / 智能ABC / zh_CN。
+- `AddonForIM("abc")` 返回 `abc`。
+- `GetAddonsV2` 含 addon `abc`，依赖 `core`。
+- 探测进程已停止，未触碰用户日常会话。
+
+### 安装路径
+
+`cmake --install build --prefix /home/londy/abc-work/cmake-prefix` 只写出：
+
+- `lib/fcitx5/abc.so`
+- `share/fcitx5/addon/abc.conf`
+- `share/fcitx5/inputmethod/abc.conf`
+
+`/usr`、`/opt` 下无 `abc.so` 或 `abc.conf`。
+`install-user.sh` 在临时前缀下通过安装、拒绝系统路径、卸载和备份恢复测试。
+
+### 自查
+
+- 无 XIM、XTest、xdotool 或模拟按键注入。
+- 无 `/opt` 安装，不覆盖系统 `/usr`。
+- 仓库和本记录不含部署凭据、真实用户输入或 token。
+- Wayland 端到端不在本任务内，不能把本次注册结果当成 A6 通过。
+
+### 给集成负责人
+
+1. 目标机 fcitx5 5.1.23 公开头要求 C++20。addon 目标单独设为 C++20，
+   根清单仍是 C++17。请确认局部 C++20，或把根标准升到 C++20。
+2. 该版本没有用户级 addon 库目录。用户安装后要在会话里设置
+   `FCITX_ADDON_DIRS=$HOME/.local/lib/fcitx5:/usr/lib/fcitx5`。
+3. A3 的 `source/dictionary/CMakeLists.txt` 引用了尚未入库的
+   `dictionary_index.cpp`。验证 A4 时临时移开了目标机副本里的该清单，
+   仓库中的 A3 文件未改。
+
