@@ -16,7 +16,7 @@
 | `tests/core/test_harness.hpp` | 零依赖断言框架 |
 | `tests/core/test_util.hpp` | 快照断言、契约不变量检查（4.1 不变量 1–6）、字符核算探针（不变量 7） |
 | `tests/core/test_letters_commit.cpp` | 字母/规范化/Enter/Backspace/Esc/溢出/空态转发/查询形态（16 用例） |
-| `tests/core/test_candidates.cpp` | 候选选择/翻页/页边界/pageCount/冻结排序/无效数字/词典错误（16 用例） |
+| `tests/core/test_candidates.cpp` | 候选选择/翻页/页边界/pageCount/冻结排序/无效数字/词典错误/错误不粘滞（17 用例） |
 | `tests/core/test_modes_forward.cpp` | 中英文模式/英文态转发/未处理键策略/切换策略选项（14 用例） |
 | `tests/core/test_factory_reset.cpp` | 工厂校验/reset/非法命令字段（10 用例） |
 | `tests/core/test_invariants.cpp` | 字符核算/会话隔离/确定性/全状态×全按键扫描（11 用例） |
@@ -108,8 +108,26 @@ g++ -std=c++17 -Wall -Wextra -Wpedantic \
 ./abc_test_core
 ```
 
-结果：`ran 67 test cases, 0 failed assertions`，退出码 0，编译零告警（2026-10-28，本机）。
-**限制披露**：本机无 CMake/Ninja，6.1 的 CMake 路径未在本机执行；两个模块 CMakeLists 按 build.md 契约编写（目标名、`abc_interfaces`/`abc_build_options` 链接、`add_test`），待集成负责人在 Linux 干净环境复跑。C++17、仅标准库依赖，编译器差异风险低。
+结果：`ran 68 test cases, 0 failed assertions`，退出码 0，编译零告警（2026-10-28，本机；含新增回归用例 DictionaryErrorNotStickyAcrossKeystrokes）。
+**限制披露**：本机无 CMake/Ninja，6.1 的 CMake 路径未在本机执行；两个模块 CMakeLists 按 build.md 契约编写（目标名、`abc_interfaces`/`abc_build_options` 链接、`add_test`），已由下节目标机复跑验证。C++17、仅标准库依赖，编译器差异风险低。
+
+### 6.3 目标机干净环境复跑（2026-10-28，负责人更替后复验）
+
+提交 `15a3d9f`（A1 修正）随全树 `f35d867`（含 A2 交付）以 `git archive` 导出
+（归档 sha256 `fd71fe0d2f4d1f386d8b551be5c8ed7f24a8515bf595b7eb71ed87ade9ef5d38`），
+在 `192.168.1.250:47672`（CatOS，GCC 16.2.1，CMake 4.4.4，Ninja 1.13.2）全新目录
+`~/abc-verify-f35d867/` 复跑（仅构建，不安装）：
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build          # 45/45 目标，零告警
+ctest --test-dir build --output-on-failure
+```
+
+结果：**100% tests passed out of 14**（含 `abc_interface_smoke`、`abc_core_tests`
+（68 用例 0 失败）、`abc_dict_import_tests`（47 用例）、A3/A4/A5 各测试与部署脚本语法检查）。
+`/usr`、`/opt` 只读审计无本项目产物（仅历史 abcabbr 试验残留，与轮次 1 记录一致）。
+完整输出：`D:\workbuddy\abc-build-local\target-verify-f35d867.log`（仓库外，脱敏）。
 
 ## 7. 测试对验收标准的覆盖映射
 
@@ -122,12 +140,14 @@ g++ -std=c++17 -Wall -Wextra -Wpedantic \
 | 核心独立构建（无 fcitx5 运行环境） | 仅标准库 + `abc_interfaces`；冒烟测试的依赖方向扫描同样适用 |
 | 无全局状态、可重复测试 | `SameInputSequenceIsDeterministic`、`TwoSessionsHoldIndependentBuffers`；实现无任何静态可变状态 |
 
-## 8. 契约确认结论（A1）
+## 8. 契约确认结论（A1，2026-10-28 复验更新）
 
-**结论：确认但有意见（不阻断）。** 对照 A1 任务书“接口边界/硬性要求”逐条核对：转移表完整可测、溢出/无候选/未处理键策略明确、fake Dictionary 接口够用、`EngineSession` 单点持有缓冲、核心不反向依赖 addon——均满足。请 A0 将本节意见转录至 `docs/interfaces/confirmations.md` 的 A1 行（该文件属 A0 所有权，A1 不直接修改）：
+**结论：确认（附一条待 A0 评估的措辞澄清请求）。** 对照 A1 任务书“接口边界/硬性要求”逐条复核：转移表完整可测、溢出/无候选/未处理键策略明确、fake Dictionary 接口够用、`EngineSession` 单点持有缓冲、核心不反向依赖 addon——均满足。
 
-1. **（措辞澄清请求）engine.md 4.1 不变量 6 与 4.3/不变量 5 存在字面矛盾**：不变量 6 写“consumed == false 时模式与快照内容不变”，但 4.3 规定未处理键策略为“提交原文后转发”（consumed=false 且组合清空、mode 变化）。本实现按 4.3 + 不变量 5 执行（提交路径清空组合），并将不变量 6 理解为“无 effects 的未消费键快照不变；有 effects 时 addon 必须执行 effects（其重点）”。建议 A0 把不变量 6 修订为：“`consumed == false` 且 `effects` 为空时快照不变；`effects` 非空时 addon 对未消费按键也必须执行 effects。”
-2. **（确认备注）`maxBufferChars` 最大 256 与词典 `codePrefix ≤ 128` 字节的组合**：缓冲超过 128 字节时 lookup 将按契约 4.2 得到 `kInvalidArgument`，核心映射为 `kDictionaryError` 按无候选处理（数据不丢，Enter 可提交原文）。行为已定义且安全，但建议 A0 在 engine.md 或 dictionary.md 注明该交互，避免 A3/A4 误判为缺陷。
+1. **（措辞澄清请求，待 A0 评估转录）engine.md 4.1 不变量 6 与 4.3 的字面矛盾**：不变量 6 开头写“`consumed == false` 时模式与快照内容不变”，但 4.3 的未处理键策略在 `consumed == false` 时会清空组合并变更模式（快照确实变了）。当前 f314103 文本已在句中补充“但 `effects` 仍可能非空……addon 对未消费按键也必须执行 effects”，实现按此执行（未处理键：先 `CommitText{B}`、清组合、模式切换、键不消费）；本实现的测试不变量 6 检查采用等价语义（“未消费且无 effects ⟹ 快照不变”）。请 A0 将不变量 6 改写为“`consumed == false` 且 `effects` 为空时快照不变；`effects` 非空时 addon 对未消费按键也必须执行 effects”，消除字面矛盾（纯措辞澄清，PATCH 级，无行为变更）。同时请 A0 将本行确认结论转录至 `docs/interfaces/confirmations.md`（该文件属 A0 所有权）。
+2. **（确认备注，建议文档化）`maxBufferChars` 上限 256 与词典 `codePrefix ≤ 128` 字节的组合**：缓冲超过 128 字节时 lookup 按契约 4.2 得 `kInvalidArgument`，核心映射为 `kDictionaryError` 按无候选处理（数据不丢，Enter 可提交原文）。行为已定义且安全，建议 A0 在 engine.md 或 dictionary.md 注明该交互，避免 A3/A4 误判为缺陷。
+
+> 复验备注：本次复验未发现除 §11 记录的 error 语义问题外的其它实现缺陷；冻结契约（f314103）与公共头自 a6d95ac 以来零变更（git diff 确认），A1 实现与当前基线契约完全一致。
 
 ## 9. 已知限制
 
@@ -137,7 +157,7 @@ g++ -std=c++17 -Wall -Wextra -Wpedantic \
 4. **Composing 下数字/翻页键会提交原文并转发**：这是冻结转移表 5.3 的行为（数字选择仅在 Selecting 定义）。若集成验收认为 UX 不可接受，属契约行为变更，须经集成负责人审批后升版本。
 5. **无候选空格默认提交原文且空格转发**：应用将收到空格字符（契约 4.3/5.3 冻结值）；`kKeepBufferAndForward` 策略可改为保留组合。
 6. **未处理键的替代策略**（结束组合但不提交原文）未实现——冻结策略只有“提交原文后转发”一种。
-7. 本机为 Windows/MinGW 验证（见 6.2），Linux 干净环境构建与 CTest 复跑待集成验收（CMake 清单未经实际执行验证）。
+7. ~~本机为 Windows/MinGW 验证（见 6.2），Linux 干净环境构建与 CTest 复跑待集成验收~~ 已于 2026-10-28 完成：目标机干净目录 CMake/Ninja 全树构建零告警、CTest 14/14 通过（见 6.3）。
 
 ## 10. 下游集成方式（A4）
 
@@ -146,3 +166,20 @@ g++ -std=c++17 -Wall -Wextra -Wpedantic \
 - 结果应用顺序（engine.md 4.4）：先按序执行 `effects`（`kCommitText` → fcitx5 commit；`kClearComposition` → 清组合窗），再按快照同步 preedit/candidates/page/highlight；`consumed == false` 时把原始按键交还 fcitx5（**也要先执行完 effects**——未处理键策略会带提交效果）。
 - 焦点丢失/停用/上下文销毁：`reset()`（清空组合不提交）。
 - 线程：会话方法只能在 fcitx5 事件线程串行调用；词典 lookup 需支持并发（A3 义务）。
+
+## 11. 交付记录（2026-10-28，负责人更替后复验）
+
+| 项 | 值 |
+|---|---|
+| 任务 | A1 输入状态机核心 |
+| 负责人 | A1 代理（新任，与 A2 同一负责人合并承担；按验收标准 §1 披露自验风险，请集成负责人复核关键结论） |
+| 提交号 | 实现 `a6d95ac`（原交付，基线契约未变）→ 修正 `15a3d9f`（error 语义）+ 本文档登记提交；修正提交变更仅 `source/core/engine_session.cpp`、`tests/core/test_candidates.cpp` |
+| 接口契约版本 | 1.0.0-rc1（`abc/version.h`；契约基线 `f314103`，自 a6d95ac 以来零变更） |
+| 变更文件清单（复验轮） | `source/core/engine_session.cpp`、`tests/core/test_candidates.cpp`、`docs/modules/core.md`（均在 A1 所有权内；未触碰 A0/A3–A6 文件） |
+| 依赖与许可证 | 仅标准库 + `abc_interfaces`；无第三方依赖；无词库数据 |
+| 构建与测试命令 | 见 §6.1（CMake/CTest）与 §6.2（本地 MinGW 直接编译） |
+| 完整结果 | 本地：`ran 68 test cases, 0 failed assertions`，零告警。目标机干净目录：45/45 目标构建零告警，CTest **14/14 通过**（`abc_core_tests` 68 用例 0 失败），§6.3 |
+| 脚本/日志 | `D:\workbuddy\abc-build-local\target-verify-f35d867.log`（目标机完整输出，仓库外，无凭据无真实用户输入） |
+| 错误处理说明 | 见 §5；本轮修正：`error` 字段为每次调用语义（§11 上文） |
+| 已知限制 | 见 §9（highlight 不可导航、原文提交为规范化小写等，均与轮次 1 一致） |
+| 对验收记录的影响 | 轮次 1 的 A1「通过（任务级）」结论在 `15a3d9f` 上维持有效；修正为非阻断语义修正，新增 1 用例，不影响已验收行为 |
