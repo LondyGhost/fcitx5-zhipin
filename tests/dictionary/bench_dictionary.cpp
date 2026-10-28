@@ -39,7 +39,6 @@ int main(int argc, char** argv) {
   const std::uint64_t kRecords = (argc > 1) ? std::stoull(argv[1]) : 200000u;
   const std::uint64_t kLookups = 100000;
 
-  const auto t0 = std::chrono::steady_clock::now();
   std::vector<a3test::Entry> entries;
   entries.reserve(kRecords);
   for (std::uint64_t i = 0; i < kRecords; ++i) {
