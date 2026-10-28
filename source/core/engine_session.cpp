@@ -66,6 +66,9 @@ class EngineSessionImpl final : public EngineSession {
       // engine.md 8.2：字段非法 → 不消费、状态不变、键交还 fcitx5。
       return makeResult({}, false, EngineError::kInvalidCommand);
     }
+    // error 字段描述本次调用：每次 handle 从 kNone 起算，
+    // 仅当本次实际发生 lookup 且失败时由 lookupAt 标注 kDictionaryError。
+    lastError_ = EngineError::kNone;
     std::vector<Effect> effects;
     bool consumed = false;
     dispatch(command, effects, consumed);
@@ -77,6 +80,7 @@ class EngineSessionImpl final : public EngineSession {
     // 快照本身即清空语义（preedit 为空），effects 为空。
     clearComposition();
     mode_ = config_.initialMode;
+    lastError_ = EngineError::kNone;  // reset 不发生查询，不携带历史错误
     return makeResult({}, false, EngineError::kNone);
   }
 

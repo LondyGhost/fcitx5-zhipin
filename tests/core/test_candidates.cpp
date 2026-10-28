@@ -211,6 +211,41 @@ ABC_TEST(DictionaryErrorTreatedAsNoCandidatesKeepsBuffer) {
   abc_test::expectState(r, Mode::kChineseEmpty, "", 0, 0, 0, -1);
 }
 
+ABC_TEST(DictionaryErrorNotStickyAcrossKeystrokes) {
+  // error 字段描述本次调用：lookup 失败后的后续按键（未发生查询）
+  // 不得沿用上一次的 kDictionaryError 标注（提交/快照路径无查询）。
+  FakeDictionary dict;
+  populateMa(dict);
+  bool fail = false;
+  dict.setScript([&fail](std::string_view prefix, uint32_t limit,
+                         uint32_t offset) -> abc::LookupResult {
+    if (fail) {
+      abc::LookupResult bad;
+      bad.status = abc::DictionaryStatus::kIoError;
+      return bad;
+    }
+    FakeDictionary inner;
+    for (int i = 1; i <= 23; ++i) {
+      char text[16];
+      std::snprintf(text, sizeof(text), "妈%02d", i);
+      inner.add("ma", text, 100.0 - i);
+    }
+    (void)prefix;
+    return inner.lookup(std::string(prefix), limit, offset);
+  });
+  auto s = makeSession(dict);
+  abc_test::typeLetters(*s, "ma");
+  fail = true;
+  abc::EngineResult r = s->handle(abc_test::letter(U'x'));  // 查询失败
+  EXPECT_TRUE(r.error == EngineError::kDictionaryError);
+  r = s->handle(abc::KeyCommand{abc::KeyCode::kEnter});  // 提交原文：本次无查询
+  EXPECT_TRUE(r.error == EngineError::kNone);
+  EXPECT_EQ(r.effects.size(), 1u);
+  EXPECT_EQ(r.effects[0].text, "max");
+  abc_test::expectState(r, Mode::kChineseEmpty, "", 0, 0, 0, -1);
+  EXPECT_TRUE(s->snapshot().error == EngineError::kNone);
+}
+
 ABC_TEST(DictionaryErrorDuringPagingFallsBackToComposing) {
   // 翻页时查询失败：按无候选处理，组合保留，Selecting 回落 Composing
   //（不变量 4：无候选的 Selecting 不存在）。
