@@ -1,4 +1,8 @@
-# 占位构建清单（空模块）。拥有者：A5；实现时替换本文件。
-# 约定：库目标 abc_config（用户配置解析为 abc::EngineConfig 与 addon 设置）。
-# 依赖方向与目标命名见 docs/interfaces/build.md；不得依赖 fcitx5（除 addon）。
-# 本文件当前不做任何事，仅保证根骨架按存在性检查纳入模块目录。
+# A5 — 配置解析库（abc_config）。本文件由 A5 拥有，替换 A0 的空模块占位。
+# 依赖方向契约：仅依赖 abc_interfaces（公共头）与标准库；禁止 fcitx5。
+# 见 docs/interfaces/build.md 第 2/4 节与 docs/modules/deployment.md。
+add_library(abc_config STATIC config.cpp)
+target_include_directories(abc_config
+  PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
+target_link_libraries(abc_config PUBLIC abc_interfaces)
+target_link_libraries(abc_config PRIVATE abc_build_options)
