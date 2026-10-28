@@ -95,6 +95,11 @@ case "$PREFIX" in
     err "禁止把前缀设为 /、/usr 或 /opt"; exit 1 ;;
 esac
 [ -n "$MANIFEST" ] || MANIFEST="$PREFIX/.abc-im/manifest.tsv"
+if [ ! -f "$MANIFEST" ] && [ -f "$PREFIX/.abc-im/manifest.list" ]; then
+  err "检测到 A4 参考脚本的清单 .abc-im/manifest.list，与本脚本清单不兼容"
+  err "请使用 deploy/fcitx5-addon/uninstall-user.sh 卸载该安装"
+  exit 1
+fi
 [ -f "$MANIFEST" ] || { err "未找到安装清单（本项目未安装或已卸载）: $MANIFEST"; exit 1; }
 for tool in sha256sum awk sort sed mktemp; do
   command -v "$tool" >/dev/null 2>&1 || { err "未找到 $tool"; exit 1; }
@@ -290,9 +295,10 @@ else
   fi
 fi
 
-log "卸载完成: 删除 $N_REMOVED，恢复备份 $N_RESTORED，缺失 $N_MISSING，跳过修改 $N_MODIFIED_SKIPPED，目录 $N_DIRS"
 if [ "$FAILED" -eq 1 ]; then
+  err "卸载未完成: 删除 $N_REMOVED，恢复备份 $N_RESTORED，缺失 $N_MISSING，跳过修改 $N_MODIFIED_SKIPPED，目录 $N_DIRS"
   err "存在未完全处理的条目（见上方警告），退出码 2"
   exit 2
 fi
+log "卸载完成: 删除 $N_REMOVED，恢复备份 $N_RESTORED，缺失 $N_MISSING，跳过修改 $N_MODIFIED_SKIPPED，目录 $N_DIRS"
 exit 0

@@ -82,6 +82,33 @@ fcitx5 -r
 fcitx5-remote -n abc
 ```
 
+### 3.1 `FCITX_ADDON_DIRS` 的安全处理
+
+`FCITX_ADDON_DIRS` 会**替换** fcitx5 内置的 addon 目录列表（A4 已在目标机用
+`StandardPathsType::Addon` 验证）。因此：
+
+- 直接 `export FCITX_ADDON_DIRS="$HOME/.local/lib/fcitx5"` 会让系统 addon
+  （`/usr/lib/fcitx5` 下的其它输入法）从列表里消失，属于**破坏性覆盖**；
+- 若用户已经设置过该变量（例如为别的 addon 指了额外目录），必须在其基础上
+  **前置**本项目目录，而不是整体替换；
+- 本项目脚本**不写**任何 shell 配置（`~/.bashrc`、`~/.profile`、
+  `~/.config/environment.d/*`），也不修改当前进程环境，只提供只读建议值：
+
+```bash
+# 只读：打印安全值，不写文件、不改环境
+scripts/install-user.sh --print-env
+# 已安装时按清单里的实际库目录推导，未安装时用 <prefix>/.local/lib/fcitx5
+# 未设置 FCITX_ADDON_DIRS → "<本项目目录>:/usr/lib/fcitx5"
+# 已设置             → "<本项目目录>:<用户原值>"（已包含本项目目录则原样输出）
+
+# 采纳建议（用户自行写入会话配置，例如 ~/.config/environment.d/90-abc.conf）：
+eval "$(scripts/install-user.sh --print-env)"    # 仅当前 shell
+```
+
+验证：`fcitx5-diagnose` 的 addon 列表应出现 `abc`，且加载路径为
+`$HOME/.local/lib/fcitx5/abc.so`；若新 addon 未加载，先确认该变量是否包含本项目目录、
+以及是否覆盖掉了 `/usr/lib/fcitx5`。
+
 ## 4. 脚本参数与退出码
 
 ### 4.1 `scripts/build-abc.sh`
@@ -121,6 +148,7 @@ fcitx5-remote -n abc
 | `--prefix DIR` | 安装前缀（默认 `$HOME`；拒绝 `/`、`/usr/**`、`/opt/**`） |
 | `--dry-run` | 只打印计划，零变更 |
 | `--verify` | 只读校验：清单 sha vs 磁盘实际内容 |
+| `--print-env` | 只读：打印安全的 `FCITX_ADDON_DIRS` 建议值（见 §3.1），不写文件、不改环境 |
 | `--allow-prefix-mismatch` | 允许清单登记前缀与 `--prefix` 不一致（迁移场景，默认拒绝） |
 
 退出码：`0` 成功/校验通过；`1` 参数或校验错误（未做任何变更）；`2` 安装失败（已回滚）
@@ -153,6 +181,9 @@ fcitx5-remote -n abc
 | 管理目录 `.abc-im` 被文件占用 | 执行期失败并回滚（退出码 2），用户文件不动 |
 | 中途任何一步失败 | 回滚本次全部变更（恢复被覆盖文件、删除本次新建文件/目录/备份），退出码 2，旧清单保持原样 |
 | 清单登记前缀与 `--prefix` 不一致 | 拒绝执行（退出码 1），需显式 `--allow-prefix-mismatch` |
+| 存在 A4 参考脚本清单 `.abc-im/manifest.list` | 拒绝执行（退出码 1），提示先用 A4 脚本卸载；两套清单不混用 |
+| `--restore-backups` 时备份缺失 | 报告"备份缺失"，退出码 2，不打印"卸载完成" |
+| `--restore-backups` 时备份 sha 不符 | 报告"校验不符"，保留备份不恢复，清单标 `restore-incomplete`，退出码 2 |
 
 ## 6. 清单格式与状态
 
@@ -203,6 +234,8 @@ scripts/uninstall-user.sh --prefix "$HOME" --dry-run
 4. 审计：前缀目录与安装前快照一致（测试 15 覆盖）。
 
 - 只删除清单登记的路径；清单缺失 → 明确报错退出 1，不做任何删除。
+- 恢复失败（备份缺失/校验不符）→ 明确报错并退出 2；汇总行输出"卸载未完成"，
+  不会出现"卸载完成"字样（避免把未完成的回滚报成成功）。
 - 目录只在为空时 `rmdir`，不递归删除，不影响共享目录。
 - 卸载不触碰 fcitx5 系统文件；旧输入法条目仍可用（addon 只是新增条目）。
 
@@ -232,26 +265,37 @@ ctest --test-dir build --output-on-failure -R 'abc_config_tests|abc_deploy|abc_b
 bash tests/deploy/test_install_uninstall.sh
 ```
 
-覆盖范围（`tests/deploy/test_install_uninstall.sh`，21 组）：
+覆盖范围（`tests/deploy/test_install_uninstall.sh`，27 组）：
 正常/重复/内容变更安装、升级不删除、外部冲突备份与覆盖、卸载保留备份→仅备份清单→
 `--restore-backups` 恢复、修改文件默认跳过与 `--force-modified`、no-overwrite 配置保护、
 缺/空 staging、未知参数、`--verify` 四种结果、staging 组装（映射/模板/控制文件/缺产物/
 `--allow-missing-addon`/`--clean`/`--out` 安全/符号链接）、前缀安全拒绝（`/`、`/usr`、`/opt`）、
 无权限、中途失败回滚（不可读文件 / `.abc-im` 被文件占用）、路径冲突（父路径被文件占用、
-目标被目录占用）、清单前缀不一致、dry-run、含空格路径、卸载后路径清单审计、`/usr` `/opt` 全局审计。
+目标被目录占用）、清单前缀不一致、dry-run、含空格路径、卸载后路径清单审计、`/usr` `/opt` 全局审计；
+以及本轮补充的 6 组专项（21–26）：
 
-`tests/deploy/CMakeLists.txt` 将 `bash -n` 与 `shellcheck`（存在时）纳入 CTest；
-本机无 shellcheck 时以 `bash -n` 为底线，结果见第 10 节。
+| 组 | 场景 | 关键断言 |
+|---|---|---|
+| 21 | 用户配置保护 | 已存在用户配置不覆盖、不登记为 F、卸载后内容 sha 与安装前一致；用户改过的已安装配置卸载时保留并报 `uninstall-incomplete` |
+| 22 | 重复安装幂等 | 第二次安装 `新建 0/更新 3/跳过 1/备份保留 0`；清单条目与文件 sha 不变；无 rollback 残留；`.abc-im` 只有 `manifest.tsv` |
+| 23 | dry-run 准确性 | 首次 `新建 4`、逐项 4 条 `[新建]`、不创建前缀；已安装后 `新建 0/更新 3/跳过 1`、3 条 `[更新-本项目]`、目录快照完全一致 |
+| 24 | 备份恢复失败 | 备份缺失 / sha 不符均退出码 2，分别报"备份缺失"/"校验不符"，输出"卸载未完成"且无"卸载完成"；不符备份保留、清单 `restore-incomplete`、目标不被损坏内容覆盖 |
+| 25 | 安装入口与路径边界 | 检测到 A4 参考脚本 `manifest.list` 时安装/卸载均拒绝（退出码 1）；正式入口只写前缀内，前缀外无 `abc.so`，`/usr`、`/opt` 无本项目文件 |
+| 26 | `FCITX_ADDON_DIRS` | `--print-env` 三种输入（未设置/已设置/已含本项目）输出正确且零变更；不修改 `~/.bashrc`、不创建 `environment.d`/`~/.profile` |
+
+`tests/deploy/CMakeLists.txt` 将 `bash -n` 与 `shellcheck` 纳入 CTest（shellcheck 不存在时
+只跑语法检查，以 `bash -n` 为底线），结果见第 10 节。
 
 ## 10. 验证记录（2026-10-28，本地）
 
-环境：Windows 10 x64 + Git Bash（cygwin bash 5.3.15）；无 CMake/Ninja/shellcheck；
-g++ 16.1.0 直接编译配置测试。目标机（Linux）复验由集成负责人执行。
+环境：Windows 10 x64 + Git Bash（cygwin bash 5.3.15）；无 CMake/Ninja；
+shellcheck 0.11.0（`pip install shellcheck-py`）；g++ 16.1.0 直接编译配置测试。
+目标机（Linux）复验由集成负责人执行（权限类用例必须在那里跑）。
 
 | 项 | 命令 | 结果 |
 |---|---|---|
 | 配置解析单元测试 | `g++ -std=c++17 -Wall -Wextra -Wpedantic -Isource/include -Isource/config tests/deploy/test_config_parser.cpp source/config/config.cpp -o abc_config_tests && ./abc_config_tests` | `abc_config_tests: ALL PASS`（11 组断言，零编译告警） |
-| 部署套件 | `bash tests/deploy/test_install_uninstall.sh` | **pass=124 fail=0 skip=2**（21 组；skip 为权限类，Windows 不强制权限） |
+| 部署套件 | `bash tests/deploy/test_install_uninstall.sh` | **pass=187 fail=0 skip=2**（27 组；skip 为权限类，Windows 不强制权限）<br>脱敏日志：[`tests/deploy/logs/2026-10-28-deploy-suite.txt`](../../tests/deploy/logs/2026-10-28-deploy-suite.txt) |
 | 语法检查 | `bash -n scripts/build-abc.sh scripts/build-staging.sh scripts/install-user.sh scripts/uninstall-user.sh` | 全部通过 |
 | shellcheck | `shellcheck -S warning scripts/*.sh tests/deploy/test_install_uninstall.sh` | shellcheck 0.11.0：**零告警**（warning 及以上；info 级别亦为空） |
 
@@ -269,6 +313,10 @@ g++ 16.1.0 直接编译配置测试。目标机（Linux）复验由集成负责�
   缺产物时退出码 2（`--allow-missing-addon` 仅警告）、`--clean` 重建无残留、
   拒绝 `/opt` 与 `$HOME` 作为 `--out`、拒绝含符号链接的前缀树；
 - 安全审计：`/`、`/usr`、`/opt` 前缀全部拒绝，测试后 `/usr`、`/opt` 无任何本项目痕迹；
+- 安装入口：检测到 A4 参考脚本 `manifest.list` 时拒绝（避免两套清单互相看不见），
+  正式入口只写前缀内；
+- 运行环境：`--print-env` 只读输出安全值，已有 `FCITX_ADDON_DIRS` 被保留并前置本项目目录，
+  不写 `~/.bashrc` / `environment.d` / `~/.profile`；
 - 卸载后目录快照与安装前逐项一致（路径清单审计）。
 
 > 本地 Windows 复跑说明：宿主对 `rm`/`rmdir` 有拦截垫片、且 cygwin fork 很慢，
@@ -284,8 +332,12 @@ g++ 16.1.0 直接编译配置测试。目标机（Linux）复验由集成负责�
 3. 升级不删除旧清单中的多余文件（避免误删）；清理请先卸载再安装。
 4. 同一路径多次备份只保留最早的原始版本（`B` 去重保首）。
 5. 并发运行两个 install 实例未加互斥（单用户手动部署场景；如需并发保护可后续加 flock）。
-6. `deploy/fcitx5-addon/install-user.sh`（A4 参考脚本）与本任务脚本清单格式不同，
-   不可混用；正式入口是 `scripts/install-user.sh`。退役该参考脚本需 A4 决定。
+6. **唯一正式安装入口是 `scripts/install-user.sh`**（卸载对应
+   `scripts/uninstall-user.sh`）。`deploy/fcitx5-addon/install-user.sh` 是 A4 自测用的
+   参考脚本：它把 staging 直接镜像到 `$HOME/.local`，清单为 `.abc-im/manifest.list`，
+   与本脚本的 `manifest.tsv` 不兼容。混用会出现"对方看不到已安装文件"的冲突状态，
+   因此 A5 脚本检测到 `manifest.list` 会拒绝执行并提示先用 A4 脚本卸载；
+   退役该参考脚本需 A4 决定（A5 不修改 A4 文件）。
 7. 不校验 UTF-8 字节合法性（契约假定输入为 UTF-8）；不支持行内 `#` 注释（契约只定义整行注释）。
 8. 脚本不修改 `FCITX_ADDON_DIRS` 等运行环境，需用户会话自行设置（见第 3 节）。
 9. staging 布局以 `$HOME` 为基准（`.local`、`.config`）。若用户设置了

@@ -32,6 +32,7 @@ assert_no_dir()  { [ ! -d "$1" ] && ok "$2" || fail "$2"; }
 assert_contains() { printf '%s' "$1" | grep -qF -- "$2" && ok "$3" || fail "$3"; }
 assert_not_contains() { printf '%s' "$1" | grep -qF -- "$2" && fail "$3" || ok "$3"; }
 assert_contains_grep() { printf '%s' "$1" | grep -qE -- "$2" && ok "$3" || fail "$3"; }
+sha_of() { sha256sum -- "$1" | cut -d' ' -f1; }
 
 SBOX="$(mktemp -d "${TMPDIR:-/tmp}/abc-deploy-test.XXXXXX")" || exit 1
 # Windows/MSYS 下 mktemp 可能返回混合路径；脚本要求 POSIX 绝对路径
@@ -435,9 +436,180 @@ else
   skip "20 staging 符号链接测试（无法创建符号链接）"
 fi
 
-# ---------------------------------------------------------------- 21 全局安全审计
-[ ! -e "/opt/.abc-im" ] && ok "21.1 /opt 无 .abc-im" || fail "21.1 /opt 无 .abc-im"
-[ ! -e "/usr/.abc-im" ] && ok "21.2 /usr 无 .abc-im" || fail "21.2 /usr 无 .abc-im"
+# ---------------------------------------------------------------- 21 用户配置保护
+# 21a 已存在的用户配置：安装不覆盖，卸载不删除，内容逐字节不变
+t21_prefix="$SBOX/user21"
+t21_stage="$SBOX/stage21"
+make_staging "$t21_stage"
+mkdir -p -- "$t21_prefix/.config/abc"
+printf 'initialMode = english\npageSize = 5\n# 用户自己的配置\n' > "$t21_prefix/.config/abc/config.ini"
+cfg_before="$(sha_of "$t21_prefix/.config/abc/config.ini")"
+out="$(bash "$INSTALL" --staging "$t21_stage" --prefix "$t21_prefix" 2>&1)"; rc=$?
+assert_eq "$rc" "0" "21.1 已有用户配置时安装退出码 0"
+assert_contains "$out" "跳过 1" "21.2 配置被跳过（不覆盖）"
+assert_eq "$(sha_of "$t21_prefix/.config/abc/config.ini")" "$cfg_before" "21.3 安装后用户配置内容不变"
+awk -F'\t' '$1=="F" && $2==".config/abc/config.ini" {found=1} END{exit !found}' \
+  "$(prefix_manifest "$t21_prefix")" \
+  && fail "21.4 跳过的用户配置不登记为 F" || ok "21.4 跳过的用户配置不登记为 F"
+out="$(bash "$UNINSTALL" --prefix "$t21_prefix" 2>&1)"; rc=$?
+assert_eq "$rc" "0" "21.5 卸载退出码 0"
+assert_file "$t21_prefix/.config/abc/config.ini" "21.6 卸载保留用户配置"
+assert_eq "$(sha_of "$t21_prefix/.config/abc/config.ini")" "$cfg_before" "21.7 卸载后内容与安装前一致"
+assert_no_dir "$t21_prefix/.abc-im" "21.8 清单与备份目录已清理"
+
+# 21b 本项目安装的配置被用户改过：卸载默认保留（不静默删用户数据）
+t21b_prefix="$SBOX/user21b"
+bash "$INSTALL" --staging "$t21_stage" --prefix "$t21b_prefix" >/dev/null 2>&1
+printf 'initialMode = english\n# 用户后来改的\n' > "$t21b_prefix/.config/abc/config.ini"
+edited_sha="$(sha_of "$t21b_prefix/.config/abc/config.ini")"
+out="$(bash "$UNINSTALL" --prefix "$t21b_prefix" 2>&1)"; rc=$?
+assert_eq "$rc" "2" "21.9 用户改过配置时卸载退出码 2（不静默删除）"
+assert_contains "$out" "安装后被修改" "21.10 报告跳过原因"
+assert_eq "$(sha_of "$t21b_prefix/.config/abc/config.ini")" "$edited_sha" "21.11 用户改动内容完整保留"
+assert_contains "$(cat "$(prefix_manifest "$t21b_prefix")" 2>/dev/null)" "uninstall-incomplete" \
+  "21.12 未删除文件保留登记"
+
+# ---------------------------------------------------------------- 22 重复安装幂等
+t22_prefix="$SBOX/user22"
+t22_stage="$SBOX/stage22"
+make_staging "$t22_stage"
+bash "$INSTALL" --staging "$t22_stage" --prefix "$t22_prefix" >/dev/null 2>&1
+m1="$(grep -v '^#' "$(prefix_manifest "$t22_prefix")" | LC_ALL=C sort)"
+s1="$(sha_of "$t22_prefix/.local/lib/fcitx5/abc-addon.so")"
+out="$(bash "$INSTALL" --staging "$t22_stage" --prefix "$t22_prefix" 2>&1)"; rc=$?
+assert_eq "$rc" "0" "22.1 第二次安装退出码 0"
+assert_contains "$out" "新建 0" "22.2 第二次安装新建数为 0"
+assert_contains "$out" "更新 3" "22.3 第二次安装更新 3 个文件"
+assert_contains "$out" "跳过 1" "22.4 第二次安装跳过 1 个配置模板"
+assert_contains "$out" "备份保留 0" "22.5 第二次安装不新增备份"
+m2="$(grep -v '^#' "$(prefix_manifest "$t22_prefix")" | LC_ALL=C sort)"
+assert_eq "$m2" "$m1" "22.6 清单条目（F/D/B 与 sha）完全一致"
+assert_eq "$(sha_of "$t22_prefix/.local/lib/fcitx5/abc-addon.so")" "$s1" "22.7 文件内容未变化"
+n_bak="$(find "$t22_prefix/.abc-im/backup" -type f 2>/dev/null | wc -l | tr -d ' ')"
+assert_eq "$n_bak" "0" "22.8 备份目录为空"
+assert_no_dir "$t22_prefix/.abc-im/rollback" "22.9 无回滚副本残留"
+assert_eq "$(ls -A -- "$t22_prefix/.abc-im" | LC_ALL=C sort | tr '\n' ' ')" "manifest.tsv " \
+  "22.10 .abc-im 只保留清单"
+
+# ---------------------------------------------------------------- 23 dry-run 准确性
+t23_prefix="$SBOX/user23"
+t23_stage="$SBOX/stage23"
+make_staging "$t23_stage"
+out="$(bash "$INSTALL" --staging "$t23_stage" --prefix "$t23_prefix" --dry-run 2>&1)"; rc=$?
+assert_eq "$rc" "0" "23.1 首次 dry-run 退出码 0"
+assert_contains "$out" "新建 4" "23.2 首次计划：新建 4"
+assert_contains "$out" "更新 0" "23.3 首次计划：更新 0"
+assert_contains "$out" "跳过 0" "23.4 首次计划：跳过 0"
+assert_eq "$(printf '%s\n' "$out" | grep -c '\[新建\]')" "4" "23.5 计划逐项列出 4 个新建"
+assert_no_dir "$t23_prefix" "23.6 dry-run 不创建前缀目录"
+
+bash "$INSTALL" --staging "$t23_stage" --prefix "$t23_prefix" >/dev/null 2>&1
+snap_before="$(snapshot "$t23_prefix")"
+out="$(bash "$INSTALL" --staging "$t23_stage" --prefix "$t23_prefix" --dry-run 2>&1)"; rc=$?
+assert_eq "$rc" "0" "23.7 已安装后 dry-run 退出码 0"
+assert_contains "$out" "新建 0" "23.8 已安装后计划：新建 0"
+assert_contains "$out" "更新 3" "23.9 已安装后计划：更新 3"
+assert_contains "$out" "跳过 1" "23.10 已安装后计划：跳过 1"
+assert_eq "$(printf '%s\n' "$out" | grep -c '\[更新-本项目\]')" "3" "23.11 计划逐项列出 3 个更新"
+assert_eq "$(snapshot "$t23_prefix")" "$snap_before" "23.12 dry-run 未修改文件系统（目录快照一致）"
+
+# ---------------------------------------------------------------- 24 --restore-backups 失败处理
+# 24a 备份缺失：必须报错并返回非零，不得报告成功
+t24_prefix="$SBOX/user24"
+t24_stage="$SBOX/stage24"
+make_staging "$t24_stage"
+mkdir -p -- "$t24_prefix/.local/share/abc"
+printf 'user-original\n' > "$t24_prefix/.local/share/abc/index.abcdix"
+bash "$INSTALL" --staging "$t24_stage" --prefix "$t24_prefix" >/dev/null 2>&1
+rm -f -- "$t24_prefix/.abc-im/backup/.local/share/abc/index.abcdix"
+out="$(bash "$UNINSTALL" --prefix "$t24_prefix" --restore-backups 2>&1)"; rc=$?
+assert_eq "$rc" "2" "24.1 备份缺失时 --restore-backups 退出码 2"
+assert_contains "$out" "备份缺失" "24.2 明确报告备份缺失"
+assert_contains "$out" "卸载未完成" "24.3 不报告卸载成功"
+assert_not_contains "$out" "卸载完成" "24.4 输出中无成功字样"
+
+# 24b 备份校验值不符：报错、保留备份、不覆盖目标、清单留 restore-incomplete
+t24b_prefix="$SBOX/user24b"
+mkdir -p -- "$t24b_prefix/.local/share/abc"
+printf 'user-original\n' > "$t24b_prefix/.local/share/abc/index.abcdix"
+bash "$INSTALL" --staging "$t24_stage" --prefix "$t24b_prefix" >/dev/null 2>&1
+bk="$t24b_prefix/.abc-im/backup/.local/share/abc/index.abcdix"
+printf 'corrupted-backup\n' > "$bk"
+out="$(bash "$UNINSTALL" --prefix "$t24b_prefix" --restore-backups 2>&1)"; rc=$?
+assert_eq "$rc" "2" "24.5 备份校验不符时退出码 2"
+assert_contains "$out" "校验不符" "24.6 明确报告校验不符"
+assert_contains "$out" "卸载未完成" "24.7 不报告卸载成功"
+assert_file "$bk" "24.8 不符的备份保留（不删除证据）"
+assert_contains "$(cat "$(prefix_manifest "$t24b_prefix")" 2>/dev/null)" "restore-incomplete" \
+  "24.9 清单标记 restore-incomplete"
+assert_contains "$(cat "$t24b_prefix/.local/share/abc/index.abcdix")" "index-v1" \
+  "24.10 目标文件未被损坏的备份覆盖"
+
+# ---------------------------------------------------------------- 25 安装入口与路径边界
+# 25a 检测到 A4 参考脚本清单（manifest.list）时拒绝，避免两套清单混用
+t25_prefix="$SBOX/user25"
+t25_stage="$SBOX/stage25"
+make_staging "$t25_stage"
+mkdir -p -- "$t25_prefix/.abc-im"
+printf '.local/lib/fcitx5/abc.so\n' > "$t25_prefix/.abc-im/manifest.list"
+out="$(bash "$INSTALL" --staging "$t25_stage" --prefix "$t25_prefix" 2>&1)"; rc=$?
+assert_eq "$rc" "1" "25.1 检测到 A4 清单时拒绝安装（退出码 1）"
+assert_contains "$out" "A4 参考脚本" "25.2 指出清单来源与不兼容"
+assert_no_file "$(prefix_manifest "$t25_prefix")" "25.3 未写入 manifest.tsv"
+out="$(bash "$UNINSTALL" --prefix "$t25_prefix" 2>&1)"; rc=$?
+assert_eq "$rc" "1" "25.4 检测到 A4 清单时拒绝卸载（退出码 1）"
+assert_contains "$out" "A4 参考脚本" "25.5 卸载同样指出清单来源"
+
+# 25b 正式入口只写前缀内：前缀外无本项目文件，系统目录无痕迹
+t25b_root="$SBOX/iso25"
+t25b_prefix="$t25b_root/user25b"
+t25b_stage="$SBOX/stage25b"
+make_staging "$t25b_stage"
+mkdir -p -- "$t25b_root/keep"
+printf 'keep\n' > "$t25b_root/keep/keepme.txt"
+keep_before="$(sha_of "$t25b_root/keep/keepme.txt")"
+out="$(bash "$INSTALL" --staging "$t25b_stage" --prefix "$t25b_prefix" 2>&1)"; rc=$?
+assert_eq "$rc" "0" "25.6 隔离前缀安装退出码 0"
+assert_eq "$(sha_of "$t25b_root/keep/keepme.txt")" "$keep_before" "25.7 前缀外文件未被改动"
+assert_eq "$(find "$t25b_root" -name abc.so -not -path "$t25b_prefix/*" 2>/dev/null | wc -l | tr -d ' ')" "0" \
+  "25.8 前缀外无 addon 文件"
+assert_no_file "/usr/lib/fcitx5/abc.so" "25.9 /usr 无本项目 addon 库"
+assert_no_file "/usr/share/fcitx5/addon/abc.conf" "25.10 /usr 无本项目 addon 描述"
+assert_no_file "/opt/abc" "25.11 /opt 无本项目目录"
+
+# ---------------------------------------------------------------- 26 FCITX_ADDON_DIRS 安全处理
+t26_prefix="$SBOX/user26"
+t26_stage="$SBOX/stage26"
+make_staging "$t26_stage"
+bash "$INSTALL" --staging "$t26_stage" --prefix "$t26_prefix" >/dev/null 2>&1
+snap26="$(snapshot "$t26_prefix")"
+out="$(env -u FCITX_ADDON_DIRS bash "$INSTALL" --print-env --prefix "$t26_prefix" 2>/dev/null)"; rc=$?
+assert_eq "$rc" "0" "26.1 --print-env 退出码 0"
+assert_eq "$out" "export FCITX_ADDON_DIRS=\"$t26_prefix/.local/lib/fcitx5:/usr/lib/fcitx5\"" \
+  "26.2 未设置时给出「本项目目录 + 系统目录」"
+assert_eq "$(snapshot "$t26_prefix")" "$snap26" "26.3 --print-env 不修改文件系统"
+
+out="$(FCITX_ADDON_DIRS="/custom/lib:/usr/lib/fcitx5" bash "$INSTALL" --print-env --prefix "$t26_prefix" 2>/dev/null)"
+assert_eq "$out" "export FCITX_ADDON_DIRS=\"$t26_prefix/.local/lib/fcitx5:/custom/lib:/usr/lib/fcitx5\"" \
+  "26.4 已有设置被保留，本项目目录前置"
+
+out="$(FCITX_ADDON_DIRS="$t26_prefix/.local/lib/fcitx5:/custom/lib" bash "$INSTALL" --print-env --prefix "$t26_prefix" 2>/dev/null)"
+assert_eq "$out" "export FCITX_ADDON_DIRS=\"$t26_prefix/.local/lib/fcitx5:/custom/lib\"" \
+  "26.5 已包含本项目目录时不重复追加"
+
+# 不写用户 shell/环境配置
+t26_fakehome="$SBOX/fakehome"
+mkdir -p -- "$t26_fakehome"
+printf 'alias ll="ls -l"\n' > "$t26_fakehome/.bashrc"
+home_sha="$(sha_of "$t26_fakehome/.bashrc")"
+HOME="$t26_fakehome" bash "$INSTALL" --staging "$t26_stage" --prefix "$SBOX/user26c" >/dev/null 2>&1
+assert_eq "$(sha_of "$t26_fakehome/.bashrc")" "$home_sha" "26.6 不修改 ~/.bashrc"
+assert_no_dir "$t26_fakehome/.config/environment.d" "26.7 不创建 environment.d 配置"
+assert_no_file "$t26_fakehome/.profile" "26.8 不创建 ~/.profile"
+
+# ---------------------------------------------------------------- 27 全局安全审计
+[ ! -e "/opt/.abc-im" ] && ok "27.1 /opt 无 .abc-im" || fail "27.1 /opt 无 .abc-im"
+[ ! -e "/usr/.abc-im" ] && ok "27.2 /usr 无 .abc-im" || fail "27.2 /usr 无 .abc-im"
 
 # ---------------------------------------------------------------- 汇总
 echo "=== 结果: pass=$PASS fail=$FAIL skip=$SKIP"

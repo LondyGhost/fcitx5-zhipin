@@ -48,12 +48,14 @@ log()  { printf '%s: %s\n' "$PROG" "$*"; }
 usage() {
   cat <<'USAGE'
 用法: install-user.sh --staging DIR [--prefix PREFIX] [--dry-run]
-      install-user.sh --verify   [--prefix PREFIX]
+      install-user.sh --verify    [--prefix PREFIX]
+      install-user.sh --print-env [--prefix PREFIX]
 
   --staging DIR  待安装的相对路径树（必填；由 build-staging.sh 或 cmake 安装产出）
   --prefix DIR   安装前缀（默认 $HOME；禁止 /、/usr/**、/opt/**）
   --dry-run      只打印计划，不做任何变更
   --verify       只校验已安装状态（清单 vs 磁盘 sha），不写任何文件
+  --print-env    只打印安全的 FCITX_ADDON_DIRS 建议值（不写文件、不改环境）
   --allow-prefix-mismatch
                  允许清单登记前缀与本次 --prefix 不一致（迁移场景，默认拒绝）
   --help         显示本帮助
@@ -74,6 +76,36 @@ sha256_of() {  # 只取 sha256 十六进制串（避免多一个 awk 进程）
 # 清单头部登记的安装前缀（用于检测"前缀与清单不一致"的误操作）
 manifest_prefix() {
   sed -n 's/^# prefix: //p' "$1" 2>/dev/null | head -n 1
+}
+
+# ---------------------------------------------------------------- 环境变量建议
+# 只读：打印安全的 FCITX_ADDON_DIRS 值，不写文件、不改环境。
+# 语义：该变量会替换 fcitx5 内置 addon 目录列表，因此必须保留原有条目；
+# 已设置时把本项目库目录前置，未设置时附带系统目录 /usr/lib/fcitx5。
+print_addon_env() {
+  local libdir="" rel
+  if [ -f "$MANIFEST" ]; then
+    while IFS=$'\t' read -r ftype rel _; do
+      [ "$ftype" = "F" ] || continue
+      case "$rel" in
+        */fcitx5/abc.so) libdir="$PREFIX/$(dirname -- "$rel")"; break ;;
+      esac
+    done < "$MANIFEST"
+  fi
+  [ -n "$libdir" ] || libdir="$PREFIX/.local/lib/fcitx5"
+
+  local existing="${FCITX_ADDON_DIRS:-}" value
+  if [ -z "$existing" ]; then
+    value="$libdir:/usr/lib/fcitx5"
+  else
+    case ":$existing:" in
+      *":$libdir:"*) value="$existing" ;;   # 已包含本项目目录，保持原值
+      *) value="$libdir:$existing" ;;       # 前置本项目目录，保留用户其余设置
+    esac
+  fi
+  printf 'export FCITX_ADDON_DIRS="%s"\n' "$value"
+  printf '%s: 仅打印建议值，未修改任何文件或环境；已有条目的其余部分保持不变\n' "$PROG" >&2
+  exit 0
 }
 
 # ---------------------------------------------------------------- 校验模式
@@ -128,6 +160,7 @@ STAGING=""
 PREFIX="${HOME:-}"
 DRY_RUN=0
 VERIFY=0
+PRINT_ENV=0
 ALLOW_PREFIX_MISMATCH=0
 
 while [ $# -gt 0 ]; do
@@ -138,6 +171,7 @@ while [ $# -gt 0 ]; do
       PREFIX=$2; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     --verify) VERIFY=1; shift ;;
+    --print-env) PRINT_ENV=1; shift ;;
     --allow-prefix-mismatch) ALLOW_PREFIX_MISMATCH=1; shift ;;
     --help|-h) usage; exit 0 ;;
     *) err "未知参数: $1"; usage >&2; exit "$EXIT_USAGE" ;;
@@ -167,6 +201,12 @@ ABSDIR="$PREFIX/$ABC_IM_DIR"
 MANIFEST="$ABSDIR/manifest.tsv"
 BACKUP_DIR="$ABSDIR/backup"        # 用户原文件备份（保留至卸载/恢复）
 ROLLBACK_DIR="$ABSDIR/rollback"    # 本项目文件的临时回滚副本（成功后删除）
+
+# 环境变量建议模式：只读，先于任何创建动作返回
+if [ "$PRINT_ENV" -eq 1 ]; then
+  [ -z "$STAGING" ] || { err "--print-env 不接受 --staging"; exit "$EXIT_USAGE"; }
+  print_addon_env
+fi
 
 # 校验模式：只读，必须在任何创建动作之前返回
 if [ "$VERIFY" -eq 1 ]; then
@@ -231,6 +271,13 @@ declare -A PREV_SHA=()   # F 条目: rel -> sha
 declare -A PREV_DIR=()   # D 条目集合
 declare -A PREV_B=()     # B 条目: rel -> sha（用户原始内容）
 HAVE_MANIFEST=0
+if [ ! -f "$MANIFEST" ] && [ -f "$ABSDIR/manifest.list" ]; then
+  # A4 参考脚本（deploy/fcitx5-addon/install-user.sh）使用 manifest.list，
+  # 格式与本脚本的 manifest.tsv 不兼容；混用会互相看不到对方安装的文件。
+  err "检测到 A4 参考脚本的清单 .abc-im/manifest.list，与本脚本清单不兼容"
+  err "请先运行 deploy/fcitx5-addon/uninstall-user.sh 卸载，再使用 scripts/install-user.sh"
+  exit "$EXIT_USAGE"
+fi
 if [ -f "$MANIFEST" ]; then
   HAVE_MANIFEST=1
   while IFS=$'\t' read -r ftype rel fsha _; do
