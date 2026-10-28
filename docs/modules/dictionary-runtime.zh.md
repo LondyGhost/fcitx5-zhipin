@@ -2,6 +2,58 @@
 
 所属任务：A3。范围见 `tasks/A3-运行时字典与候选检索.md`。
 
+## 独立验收状态（2026-10-28）
+
+- 本次检查源码基线：`45d5cb70a7a835359bb6ccae55d63112233a2591`。
+- A3 实现交付：`76a83eeb2558e12c7af592179ac46808c2d1b78e`；本轮 A3 验收材料及
+  构建测试补充修改 `tests/dictionary/CMakeLists.txt`、
+  `tests/dictionary/test_dictionary.cpp` 及本文档中英文版本，提交全号随交付报告提供。
+- 接口契约：**1.0.0-rc1**；索引格式：**v1.0**。
+- 本次核对的 A2 路径：
+  - 任务说明：`D:\workbuddy\linux智能ABC\tasks\A2-Rime词库导入器.md`
+  - 导入器源码：`D:\workbuddy\linux智能ABC\source\dict-importer\`
+  - 测试/fixture：`D:\workbuddy\linux智能ABC\tests\dict-importer\`
+  当前基线缺少 A2 源码与测试目录，导入器 CMake 仍为占位文件。可见提交历史中
+  没有新 A2 负责人、交付提交、A2 专属接口版本声明或 A2 生成的 fixture/报告。
+  **A2→A3 交叉验证：等待 A2 交付。** Fixture 路径、SHA-256、生成命令、报告、
+  索引校验值、加载/查询结果及重复编译比较均不可提供。A3 自造测试索引不作为
+  交叉验证证据。
+- A3 源码：`D:\workbuddy\linux智能ABC\source\dictionary\`；测试及 CMake：
+  `D:\workbuddy\linux智能ABC\tests\dictionary\`；索引契约：
+  `D:\workbuddy\linux智能ABC\docs\interfaces\index-format.md`；词典契约：
+  `D:\workbuddy\linux智能ABC\docs\interfaces\dictionary.md`；英文模块记录：
+  `D:\workbuddy\linux智能ABC\docs\modules\dictionary-runtime.md`；中文模块记录：
+  `D:\workbuddy\linux智能ABC\docs\modules\dictionary-runtime.zh.md`；A6 所有且本轮
+  未改的验收记录：`D:\workbuddy\linux智能ABC\docs\验收记录.md`。
+- 原先缺少 `tests/dictionary/CMakeLists.txt`，现由 A3 添加。根 `CMakeLists.txt` 已将
+  `dictionary` 列入 `ABC_TEST_MODULES`，目录存在 CMake 文件后会自动注册；测试名为
+  `abc_dictionary_tests`，基准目标为 `abc_bench_dictionary`。
+- 新增回归测试覆盖 `recordCount > kIndexMaxRecords` 和
+  `recordCount * kIndexMinRecordBytes` 大于记录区；已有测试覆盖截断/损坏、主次版本
+  不兼容、offset 超出结果及分页边界。loader 先用 u64 读取磁盘计数，先检查 10,000,000
+  上限再乘 24；通过上限后乘法不会溢出 u64。预算检查先于转成 `size_t` 和 reserve，
+  reserve 还受 `record_bytes / 24` 限制；文件缓冲分配另受 3 GiB 上限约束。
+- 干净构建命令（仓库根目录）：
+  `cmake -S . -B build-a3-clean -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo`、
+  `cmake --build build-a3-clean`、`ctest --test-dir build-a3-clean --output-on-failure`。
+  本 Windows 会话未安装 CMake/Ninja，故 configure/build/CTest 未运行。另以 MinGW 执行
+  直接编译：`g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Isource/include
+  -Isource/dictionary -Itests/dictionary source/dictionary/index_loader.cpp
+  source/dictionary/dictionary_index.cpp tests/dictionary/test_dictionary.cpp
+  -o %TEMP%\abc_test_dictionary_a3.exe -pthread`，再运行该 exe；结果 exit 0，**41 项
+  通过、0 失败、1 项跳过**（缺 A2 fixture）。直接编译不能证明 CMake/CTest 注册，干净
+  CMake/CTest 完整结果仍待补；目标 Linux 上 A3 测试也待执行。
+- 目标 Linux 环境资料见 `docs/目标机环境.md`：CatOS、x86_64、内核 7.2.11-arch1-1、
+  4 核、GCC 16.2.1、CMake 4.4.4、Ninja 1.13.2。尚未在该设备运行 A3 基准。下文已有
+  Windows 20 万条结果仅为开发测量，不能作为目标 Linux 验收证据。**目标 Linux 契约
+  规模（最多 200 万条/200 MB）性能：待完成。**责任人：A3（DNP Dev）；计划是在目标机
+  构建 `abc_bench_dictionary`，以 200 万条代表数据运行并归档完整 stdout、设备信息、
+  索引大小、加载耗时和查询延迟。
+- 脱敏 A3 构建/测试/基准日志：**待生成并交 A6 归档**。本次不写 A6 所有的 `logs/`、
+  `tests/integration/`、`tests/manual/`、`artifacts/manifest.md` 或 `docs/验收记录.md`。
+- 已知验收限制：新 A2 负责人/提交及交叉产物缺失；干净 CMake/CTest 与目标 Linux 性能
+  未验证。现有模块自测和 Windows 合成基准不能关闭这些事项。
+
 本模块提供只读运行时索引加载器，以及冻结公共契约
 （`docs/interfaces/dictionary.md`、`docs/interfaces/index-format.md`）背后的
 `abc::Dictionary` 实现。
@@ -85,18 +137,27 @@ docs/modules/dictionary-runtime.md      本文档
 
 ## 6. 性能测量
 
-环境：Windows 10 主机，MinGW g++ 16.1.0（`-O2`），单线程，本地 SSD。
+开发环境测量：Windows 主机，MinGW g++ 16.1.0（`-O2`），单线程，本地 SSD。
+此结果不是目标 Linux 验收证据。
 
 代表性数据集：20 万条、8.8 MB 索引、编码互不相同、`c00000000` 风格合成编码。
 
 | 测量项 | 结果 |
 |---|---|
-| 夹具构建 | 378 ms |
-| 加载进入可服务状态（`loadDictionaryFromFile`） | 57 ms |
-| 10 万次前缀查询，页大小 9 | 3.45 us / 次 |
+| A3 合成基准夹具构建 | 500.139 ms |
+| 写出索引 | 10.3174 ms |
+| 加载进入可服务状态（`loadDictionaryFromFile`） | 74.0305 ms |
+| 10 万次前缀查询，页大小 9 | 总计 215.223 ms；2.15223 us / 次 |
 
-方法：`tests/dictionary/bench_dictionary.cpp`（构建与运行命令见下），计时用
-`std::chrono::steady_clock`。
+命令：`g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Isource/include
+-Isource/dictionary -Itests/dictionary source/dictionary/index_loader.cpp
+source/dictionary/dictionary_index.cpp tests/dictionary/bench_dictionary.cpp
+-o %TEMP%\abc_bench_dictionary_a3.exe -pthread`，再运行
+`%TEMP%\abc_bench_dictionary_a3.exe 200000`。
+完整输出：`bench: records=200000 index_bytes=8800048 build_ms=500.139
+write_ms=10.3174 load_ms=74.0305 lookup_ms_per_100k=215.223
+us_per_lookup=2.15223 prefix_total=10 first_page_size=9 served=900000`。
+方法：`tests/dictionary/bench_dictionary.cpp`，计时使用 `std::chrono::steady_clock`。
 
 契约基线为 <= 200 万条 / <= 200 MB。查询为每页 O(log n) 加 O(limit) 物化；
 加载为 O(n)。

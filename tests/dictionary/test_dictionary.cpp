@@ -380,6 +380,21 @@ int main() {
     }
   }
 
+  // ---- Header record-count bounds and record-area budget ----
+  {
+    const std::vector<std::vector<std::uint8_t>> no_frames;
+    checkLoadFails(
+        a3test::buildRaw(no_frames,
+                         static_cast<std::uint64_t>(abc::kIndexMaxRecords) + 1,
+                         0, abc::kIndexFormatVersion),
+        abc::DictionaryStatus::kCorruptIndex,
+        "record-count-exceeds-maximum");
+    checkLoadFails(
+        a3test::buildRaw(no_frames, 1, 0, abc::kIndexFormatVersion),
+        abc::DictionaryStatus::kCorruptIndex,
+        "record-count-exceeds-record-area-budget");
+  }
+
   // ---- Version incompatibility ----
   {
     const std::vector<std::vector<std::uint8_t>> one = {
