@@ -1,0 +1,4 @@
+# 纯文本码表（无 YAML 头；custom_phrase.txt 风格）
+
+自定义短语	zidingyi	50
+短语	duanyu

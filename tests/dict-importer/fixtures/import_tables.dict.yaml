@@ -1,0 +1,7 @@
+---
+name: aggregator
+import_tables:
+  - cn_dicts/base
+  - cn_dicts/ext
+...
+词	ci

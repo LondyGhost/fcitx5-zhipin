@@ -1,0 +1,7 @@
+---
+name: columns_test
+columns:
+  - text
+  - code
+...
+字	zi

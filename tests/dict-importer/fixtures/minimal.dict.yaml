@@ -1,0 +1,28 @@
+# Rime dictionary
+# encoding: utf-8
+#
+# A2 最小自造测试词库（非第三方词库数据）。
+# 用途：golden 结构校验 / 确定性 / A3 loader 交叉验证。
+# 许可：随本项目分发，测试用途自由使用。
+
+---
+name: abc_test_minimal
+version: "1.0"
+sort: by_weight
+author: A2 fixtures
+...
+# 表体开始
+
+你好	nihao	100
+你好	ni hao	90
+你好	nihao
+世界	shijie
+测试	ce shi	55.5
+妈妈	mama	80
+妈妈	MA MA	60
+马	ma	70
+妈	ma	65
+骂	ma	60
+马	ma	70
+妈妈	mama	100
+呢	ne	10
