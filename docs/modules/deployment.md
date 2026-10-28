@@ -297,9 +297,20 @@ g++ 16.1.0 直接编译配置测试。目标机（Linux）复验由集成负责�
 | 项 | 值 |
 |---|---|
 | 任务 | A5 配置与用户级部署 |
-| 提交号 | 见本次提交（`git log -1 --format=%H`） |
+| 提交号 | `d5b4b5b`（全值 `d5b4b5bf8ae3223577b5ee658123caad6b566600`；本文件为交付记录提交） |
 | 接口契约版本 | 1.0.0-rc1（`abc/version.h`：`ABC_INTERFACE_VERSION_STRING "1.0.0"`） |
 | 配置键表版本 | `config.md` v1.0.0-rc1（第 4 节冻结键表，未新增键） |
 | 清单格式版本 | `manifest v1`（`MANIFEST_VERSION=1`） |
 | 变更文件 | `source/config/{abc_config.h,config.cpp,CMakeLists.txt}`、`scripts/{build-abc.sh,build-staging.sh,install-user.sh,uninstall-user.sh}`、`deploy/README.md`、`deploy/abc/config.ini`、`tests/deploy/{CMakeLists.txt,test_config_parser.cpp,test_install_uninstall.sh}`、`docs/modules/deployment.md` |
 | 未触碰 | addon 实现（`source/fcitx5-addon/**`）、根 `CMakeLists.txt`、公共头、其他任务文件、`deploy/fcitx5-addon/**`（A4 所有权） |
+
+### 12.1 自查声明（对照 `独立任务验收标准.md` §2.7）
+
+- 无 XIM/XTest/xdotool：本任务不含任何按键注入代码，部署脚本只做文件复制与清单管理。
+- 无 `/opt` 安装：`build-abc.sh`/`build-staging.sh`/`install-user.sh` 均显式拒绝
+  `/`、`/usr`、`/opt` 及其子路径；测试 9、16.3、16.4、18.23 与 21 组复核。
+- 不覆盖系统 `/usr`：安装目标只在前缀内（默认 `$HOME`），并对目标 `realpath`
+  再校验一次，防符号链接绕过；测试后审计 `/usr`、`/opt` 无本项目痕迹。
+- 不在仓库或日志放置部署凭据：脚本不读取、不打印任何凭据或环境变量；
+  未访问仓库外部署资料；配置模板按契约声明禁止存放凭据。
+- 未修改其他任务文件：见上表"未触碰"；本次提交仅 13 个 A5 文件。
