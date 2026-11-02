@@ -47,20 +47,50 @@ void testPreeditUpdate() {
   result.pageCount = 1;
   result.highlight = -1;
 
-  const auto actions = abc::addon::mapResult(result, true);
-  expect(actions.size() == 2, "composing result has preedit + candidates");
+  const auto actions = abc::addon::mapResult(result);
+  expect(actions.size() == 2, "composing result has preedit + candidate action");
   expect(actions[0].kind == abc::addon::UiAction::Kind::kSetPreedit &&
              actions[0].text == "ni",
          "preedit text is the normalized buffer");
+  // 交互约定：Composing 阶段只显示字母串，不弹候选窗。
+  expect(actions[1].kind == abc::addon::UiAction::Kind::kClearCandidates,
+         "composing hides the candidate list until space");
+
+}
+
+void testSelectingShowsCandidates() {
+  abc::EngineResult result;
+  result.consumed = true;
+  result.mode = abc::Mode::kSelecting;
+  result.preedit = "ni";
+  result.candidates = {candidate("你"), candidate("尼")};
+  result.pageCount = 1;
+  result.highlight = 0;
+
+  const auto actions = abc::addon::mapResult(result);
+  expect(actions.size() == 2, "selecting result has preedit + candidates");
+  // 选择态：组字框显示当前高亮候选，而不是字母串。
+  expect(actions[0].kind == abc::addon::UiAction::Kind::kSetPreedit &&
+             actions[0].text == "你",
+         "selecting shows the highlighted candidate in the preedit box");
   expect(actions[1].kind == abc::addon::UiAction::Kind::kSetCandidates &&
              actions[1].candidates.size() == 2 &&
-             actions[1].candidates[0] == "你" && actions[1].highlight == -1,
-         "candidate list keeps core order and highlight");
+             actions[1].candidates[0] == "你" && actions[1].highlight == 0,
+         "candidate list appears after space and keeps core order/highlight");
+}
 
-  const auto hidden = abc::addon::mapResult(result, false);
-  expect(hidden[0].kind == abc::addon::UiAction::Kind::kSetPreedit &&
-             hidden[0].text.empty(),
-         "preeditInClient=false sends an empty client preedit");
+void testSelectingPreeditFollowsHighlight() {
+  abc::EngineResult result;
+  result.consumed = true;
+  result.mode = abc::Mode::kSelecting;
+  result.preedit = "ni";
+  result.candidates = {candidate("你"), candidate("尼"), candidate("泥")};
+  result.pageCount = 1;
+  result.highlight = 2;
+
+  const auto actions = abc::addon::mapResult(result);
+  expect(actions[0].text == "泥",
+         "preedit box follows the highlighted candidate");
 }
 
 void testCommitOrder() {
@@ -74,7 +104,7 @@ void testCommitOrder() {
   clear.kind = abc::Effect::Kind::kClearComposition;
   result.effects = {commit, clear};
 
-  const auto actions = abc::addon::mapResult(result, true);
+  const auto actions = abc::addon::mapResult(result);
   expect(actions.size() == 4, "effects precede the snapshot actions");
   expect(actions[0].kind == abc::addon::UiAction::Kind::kCommitText &&
              actions[0].text == "你",
@@ -98,7 +128,7 @@ void testUnconsumedKeyStillAppliesEffects() {
   commit.text = "nihao";
   result.effects = {commit};
 
-  const auto actions = abc::addon::mapResult(result, true);
+  const auto actions = abc::addon::mapResult(result);
   expect(actions[0].kind == abc::addon::UiAction::Kind::kCommitText &&
              actions[0].text == "nihao",
          "unconsumed key still commits the raw buffer");
@@ -113,7 +143,7 @@ void testDeactivateClearsWithoutCommit() {
   result.consumed = false;
   result.mode = abc::Mode::kChineseEmpty;
 
-  const auto actions = abc::addon::mapResult(result, true);
+  const auto actions = abc::addon::mapResult(result);
   expect(!hasKind(actions, abc::addon::UiAction::Kind::kCommitText),
          "deactivation reset does not commit");
   expect(actions[0].kind == abc::addon::UiAction::Kind::kSetPreedit &&
@@ -128,7 +158,7 @@ void testEmptyCommitIsNotEmitted() {
   abc::Effect commit;
   commit.kind = abc::Effect::Kind::kCommitText;
   result.effects = {commit};
-  const auto actions = abc::addon::mapResult(result, true);
+  const auto actions = abc::addon::mapResult(result);
   expect(actions[0].kind == abc::addon::UiAction::Kind::kCommitText &&
              actions[0].text.empty(),
          "empty commit is represented and skipped by the engine");
@@ -138,6 +168,8 @@ void testEmptyCommitIsNotEmitted() {
 
 int main() {
   testPreeditUpdate();
+  testSelectingShowsCandidates();
+  testSelectingPreeditFollowsHighlight();
   testCommitOrder();
   testUnconsumedKeyStillAppliesEffects();
   testDeactivateClearsWithoutCommit();

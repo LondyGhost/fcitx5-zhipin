@@ -11,12 +11,17 @@ bool nameEquals(const char* name, const char* expected) {
   return name != nullptr && std::strcmp(name, expected) == 0;
 }
 
+// 翻页键：主键盘 - / =（智能ABC 习惯）+ 物理 Page_Up / Page_Down。
+// 明确不包含小键盘的 KP_Subtract / KP_Equal —— 那两个键照常当普通字符。
+// 只在选择态被核心消费；组合态/英文态原样转发给应用。
 bool isPageUp(uint32_t sym) {
-  return sym == keysym::kPrior || sym == keysym::kKpPrior;
+  return sym == keysym::kPrior || sym == keysym::kKpPrior ||
+         sym == keysym::kMinus;
 }
 
 bool isPageDown(uint32_t sym) {
-  return sym == keysym::kNext || sym == keysym::kKpNext;
+  return sym == keysym::kNext || sym == keysym::kKpNext ||
+         sym == keysym::kEqual;
 }
 
 }  // namespace
@@ -75,6 +80,24 @@ KeyCommand toKeyCommand(const KeyInput& input, ModeSwitchKey modeSwitchKey) {
   }
   if (isPageDown(sym)) {
     command.code = KeyCode::kPageDown;
+    return command;
+  }
+  // 方向键：选择态里「上下翻页、左右移动高亮」。和功能键一样不受组合修饰影响，
+  // 具体是否消费由核心按当前状态决定（组合态仍按未处理键处理）。
+  if (sym == keysym::kLeft) {
+    command.code = KeyCode::kLeft;
+    return command;
+  }
+  if (sym == keysym::kRight) {
+    command.code = KeyCode::kRight;
+    return command;
+  }
+  if (sym == keysym::kUp) {
+    command.code = KeyCode::kUp;
+    return command;
+  }
+  if (sym == keysym::kDown) {
+    command.code = KeyCode::kDown;
     return command;
   }
 

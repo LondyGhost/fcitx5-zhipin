@@ -1,0 +1,90 @@
+COMMAND: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+-- The CXX compiler identification is GNU 16.2.1
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/londy/.cache/abc-a4/clean/build
+COMMAND: cmake --build build
+[1/45] Building CXX object source/dict-importer/CMakeFiles/abc_dict_import.dir/main.cpp.o
+[2/45] Building CXX object source/dictionary/CMakeFiles/abc_dictionary.dir/dictionary_index.cpp.o
+[3/45] Building CXX object source/fcitx5-addon/CMakeFiles/abc_fcitx5_addon.dir/keyconv.cpp.o
+[4/45] Building CXX object source/core/CMakeFiles/abc_core.dir/engine_session.cpp.o
+[5/45] Linking CXX static library source/core/libabc_core.a
+[6/45] Building CXX object source/fcitx5-addon/CMakeFiles/abc_fcitx5_addon.dir/ui_mapping.cpp.o
+[7/45] Building CXX object tests/core/CMakeFiles/abc_test_core.dir/test_main.cpp.o
+[8/45] Building CXX object source/config/CMakeFiles/abc_config.dir/config.cpp.o
+[9/45] Linking CXX static library source/config/libabc_config.a
+[10/45] Building CXX object source/dictionary/CMakeFiles/abc_dictionary.dir/index_loader.cpp.o
+[11/45] Linking CXX static library source/dictionary/libabc_dictionary.a
+[12/45] Building CXX object source/fcitx5-addon/CMakeFiles/abc_fcitx5_addon.dir/abcengine.cpp.o
+[13/45] Building CXX object tests/smoke/CMakeFiles/abc_interface_smoke.dir/test_interfaces.cpp.o
+[14/45] Building CXX object source/dict-importer/CMakeFiles/abc_dict_import_core.dir/dict_importer.cpp.o
+[15/45] Linking CXX static library source/dict-importer/libabc_dict_import_core.a
+[16/45] Linking CXX executable source/dict-importer/abc_dict_import
+[17/45] Building CXX object tests/dict-importer/CMakeFiles/abc_test_dict_import.dir/test_main.cpp.o
+[18/45] Building CXX object tests/core/CMakeFiles/abc_test_core.dir/test_letters_commit.cpp.o
+[19/45] Building CXX object tests/core/CMakeFiles/abc_test_core.dir/test_candidates.cpp.o
+[20/45] Building CXX object tests/core/CMakeFiles/abc_test_core.dir/test_modes_forward.cpp.o
+[21/45] Building CXX object tests/core/CMakeFiles/abc_test_core.dir/test_invariants.cpp.o
+[22/45] Building CXX object tests/core/CMakeFiles/abc_test_core.dir/test_factory_reset.cpp.o
+[23/45] Building CXX object tests/dict-importer/CMakeFiles/abc_test_dict_import.dir/test_parse.cpp.o
+[24/45] Building CXX object tests/fcitx5-addon/CMakeFiles/abc_addon_keyconv.dir/test_keyconv.cpp.o
+[25/45] Building CXX object tests/fcitx5-addon/CMakeFiles/abc_addon_keyconv.dir/__/__/source/fcitx5-addon/keyconv.cpp.o
+[26/45] Building CXX object tests/dict-importer/CMakeFiles/abc_test_dict_import.dir/test_cli.cpp.o
+[27/45] Building CXX object tests/dict-importer/CMakeFiles/abc_test_dict_import.dir/test_cross.cpp.o
+[28/45] Building CXX object tests/fcitx5-addon/CMakeFiles/abc_addon_ui_mapping.dir/__/__/source/fcitx5-addon/ui_mapping.cpp.o
+[29/45] Building CXX object tests/fcitx5-addon/CMakeFiles/abc_addon_ui_mapping.dir/test_ui_mapping.cpp.o
+[30/45] Building CXX object tests/dict-importer/CMakeFiles/abc_test_dict_import.dir/test_compile.cpp.o
+[31/45] Building CXX object tests/fcitx5-addon/CMakeFiles/abc_addon_session_driver.dir/__/__/source/fcitx5-addon/ui_mapping.cpp.o
+[32/45] Linking CXX executable tests/smoke/abc_interface_smoke
+[33/45] Linking CXX shared module source/fcitx5-addon/abc.so
+[34/45] Linking CXX executable tests/core/abc_test_core
+[35/45] Linking CXX executable tests/dict-importer/abc_test_dict_import
+[36/45] Linking CXX executable tests/fcitx5-addon/abc_addon_keyconv
+[37/45] Linking CXX executable tests/fcitx5-addon/abc_addon_ui_mapping
+[38/45] Building CXX object tests/dictionary/CMakeFiles/abc_bench_dictionary.dir/bench_dictionary.cpp.o
+[39/45] Linking CXX executable tests/dictionary/abc_bench_dictionary
+[40/45] Building CXX object tests/deploy/CMakeFiles/abc_config_tests.dir/test_config_parser.cpp.o
+[41/45] Linking CXX executable tests/deploy/abc_config_tests
+[42/45] Building CXX object tests/fcitx5-addon/CMakeFiles/abc_addon_session_driver.dir/test_session_driver.cpp.o
+[43/45] Linking CXX executable tests/fcitx5-addon/abc_addon_session_driver
+[44/45] Building CXX object tests/dictionary/CMakeFiles/abc_test_dictionary.dir/test_dictionary.cpp.o
+[45/45] Linking CXX executable tests/dictionary/abc_test_dictionary
+COMMAND: ctest --test-dir build --output-on-failure
+Test project /home/londy/.cache/abc-a4/clean/build
+      Start  1: abc_interface_smoke
+ 1/14 Test  #1: abc_interface_smoke .................   Passed    0.00 sec
+      Start  2: abc_core_tests
+ 2/14 Test  #2: abc_core_tests ......................   Passed    0.00 sec
+      Start  3: abc_dict_import_tests
+ 3/14 Test  #3: abc_dict_import_tests ...............   Passed    0.03 sec
+      Start  4: abc_dictionary_tests
+ 4/14 Test  #4: abc_dictionary_tests ................   Passed    0.00 sec
+      Start  5: abc_addon_keyconv
+ 5/14 Test  #5: abc_addon_keyconv ...................   Passed    0.00 sec
+      Start  6: abc_addon_ui_mapping
+ 6/14 Test  #6: abc_addon_ui_mapping ................   Passed    0.00 sec
+      Start  7: abc_addon_session_driver
+ 7/14 Test  #7: abc_addon_session_driver ............   Passed    0.00 sec
+      Start  8: abc_addon_install_paths
+ 8/14 Test  #8: abc_addon_install_paths .............   Passed    0.10 sec
+      Start  9: abc_config_tests
+ 9/14 Test  #9: abc_config_tests ....................   Passed    0.00 sec
+      Start 10: abc_deploy_install_uninstall
+10/14 Test #10: abc_deploy_install_uninstall ........   Passed    2.55 sec
+      Start 11: abc_bash_syntax_build-abc.sh
+11/14 Test #11: abc_bash_syntax_build-abc.sh ........   Passed    0.00 sec
+      Start 12: abc_bash_syntax_build-staging.sh
+12/14 Test #12: abc_bash_syntax_build-staging.sh ....   Passed    0.00 sec
+      Start 13: abc_bash_syntax_install-user.sh
+13/14 Test #13: abc_bash_syntax_install-user.sh .....   Passed    0.00 sec
+      Start 14: abc_bash_syntax_uninstall-user.sh
+14/14 Test #14: abc_bash_syntax_uninstall-user.sh ...   Passed    0.00 sec
+
+100% tests passed out of 14
+
+Total Test time (real) =   2.70 sec

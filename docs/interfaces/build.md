@@ -43,7 +43,7 @@
 | `abc_interfaces` | INTERFACE | `source/include` 头文件包含路径 + `cxx_std_17`。**所有模块对公共头的依赖只允许经它**。 |
 | `abc_build_options` | INTERFACE | 统一告警选项；模块目标私有链接它。 |
 
-## 4. 依赖方向（冻结，违者为架构缺陷）
+## 4. 依赖方向
 
 ```text
                     ┌──────────────────────────────┐
@@ -53,12 +53,12 @@
            ┌──────────┘        │        │        │        └──────────┐
       abc_core          abc_dictionary  abc_config   abc_dict_import   abc_fcitx5_addon
       (A1)              (A3)            (A5)         (A2)              (A4)
-      │                 │               │            │                 │
-      └── 仅标准库      └── 仅标准库    └─ 仅标准库  └─ 仅标准库      └─ + fcitx5 开发包
+  │                 │               │            │                 │
+       └── 仅标准库      └── 仅标准库    └─ 仅标准库  └─ 仅标准库      └─ + fcitx5 开发包
 ```
 
 - `abc_core`、`abc_dictionary`、`abc_config`、`abc_dict_import`：**禁止**链接/包含 fcitx5、X11、Wayland 任何头或库；只依赖 `abc_interfaces` 与标准库。
-- `abc_fcitx5_addon`：允许 fcitx5 开发包；对核心只经 `abc_interfaces` 头 + 链接 `abc_core`（工厂函数）。
+- `abc_fcitx5_addon`：允许 fcitx5 开发包；依赖 A1 `abc_core`、A3 `abc_dictionary`、A5 `abc_config`，将其静态归档链接进 addon；三库须 PIC。核心和数据模块仍不依赖 fcitx5。
 - **核心不得反向依赖 addon**；头文件层由冒烟测试强制（扫描 `#include`）。
 - 会话工厂（A1）与词典加载器（A3）的符号由其模块提供；骨架期无实现时冒烟测试不得引用（见 `tests/smoke`）。
 

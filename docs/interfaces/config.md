@@ -27,7 +27,7 @@ AddonSettings（第 2 节）────────► A4 addon（热键识别�
 |---|---|---|
 | `indexPath` | 编译后的引擎索引文件路径（`loadDictionaryFromFile` 入参） | 用户数据目录下 `abc/index.abcdix` |
 | `modeSwitchKey` | 中英文切换热键的 fcitx5 键名（A4 据此把按键映射为 `kModeSwitch`） | `Shift` |
-| `preeditInClient` | 预编辑是否送入应用窗口（fcitx5 客户端 preedit） | `true` |
+| `preeditInClient` | 预编辑是否送入应用窗口（fcitx5 客户端 preedit）；false = 用 fcitx 组字框（智能ABC 样式） | `false` |
 
 说明：
 
@@ -66,7 +66,7 @@ AddonSettings（第 2 节）────────► A4 addon（热键识别�
 |---|---|---|
 | `indexPath` | 路径（可含空格） | 用户数据目录下 `abc/index.abcdix` |
 | `modeSwitchKey` | fcitx5 键名字符串 | `Shift` |
-| `preeditInClient` | `true` \| `false` | `true` |
+| `preeditInClient` | `true` \| `false` | `false` |
 
 - 键名区分大小写；整数接受十进制 ASCII，拒绝空串与溢出。
 - 新增键属于 minor 演进：由 A0/集成负责人审批后追加到本表，A5 同步实现，

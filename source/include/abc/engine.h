@@ -77,6 +77,9 @@ struct EngineResult {
   uint32_t page = 0;                  // 当前页，0 基
   uint32_t pageCount = 0;             // 总页数；0 = 无候选页
   int32_t highlight = -1;             // 页内高亮 0 基；-1 = 无
+  // 选择态下组字框默认显示高亮候选（智能ABC 手感）。分阶段选字时
+  // preedit 已是「已选字 + 剩余编码」，置 true 让适配层不要覆盖它。
+  bool keepPreedit = false;
   std::vector<Effect> effects;        // 按序执行
   EngineError error = EngineError::kNone;
 };

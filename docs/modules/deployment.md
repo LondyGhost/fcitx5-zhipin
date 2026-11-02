@@ -58,7 +58,7 @@ A4 的 `deploy/fcitx5-addon/install-manifest.md` 与 `source/fcitx5-addon/CMakeL
 
 | 相对路径（`$HOME` 起） | 来源 | 作用 |
 |---|---|---|
-| `.local/lib/fcitx5/abc.so` | `abc_fcitx5_addon` | addon 共享库（`Library=libabc`） |
+| `.local/lib/fcitx5/libabc.so` | `abc_fcitx5_addon` | addon 共享库（`Library=libabc`） |
 | `.local/share/fcitx5/addon/abc.conf` | `abc-addon.conf` | addon 注册描述 |
 | `.local/share/fcitx5/inputmethod/abc.conf` | `abc-im.conf` | 输入法条目 |
 | `.config/abc/config.ini` | `deploy/abc/config.ini`（A5） | 用户配置模板（存在即跳过） |
@@ -91,6 +91,9 @@ fcitx5-remote -n abc
   （`/usr/lib/fcitx5` 下的其它输入法）从列表里消失，属于**破坏性覆盖**；
 - 若用户已经设置过该变量（例如为别的 addon 指了额外目录），必须在其基础上
   **前置**本项目目录，而不是整体替换；
+- addon/输入法描述文件须位于真实 `$HOME/.local/share/fcitx5/{addon,inputmethod}`。
+  Fcitx5 5.1.23 的 `FCITX_ADDON_DIRS` 只改动态库目录，`FCITX_DATA_DIRS` 不改
+  `StandardPathsType::PkgData`；使用隔离 HOME 验收时应单独确认该版本的标准路径。
 - 本项目脚本**不写**任何 shell 配置（`~/.bashrc`、`~/.profile`、
   `~/.config/environment.d/*`），也不修改当前进程环境，只提供只读建议值：
 
@@ -106,7 +109,7 @@ eval "$(scripts/install-user.sh --print-env)"    # 仅当前 shell
 ```
 
 验证：`fcitx5-diagnose` 的 addon 列表应出现 `abc`，且加载路径为
-`$HOME/.local/lib/fcitx5/abc.so`；若新 addon 未加载，先确认该变量是否包含本项目目录、
+`$HOME/.local/lib/fcitx5/libabc.so`；若新 addon 未加载，先确认该变量是否包含本项目目录、
 以及是否覆盖掉了 `/usr/lib/fcitx5`。
 
 ## 4. 脚本参数与退出码
@@ -195,7 +198,7 @@ eval "$(scripts/install-user.sh --print-env)"    # 仅当前 shell
 # created: 2026-10-28T02:00:00Z
 # prefix: /home/londy
 # fields: F<TAB>rel<TAB>sha256<TAB>mode | D<TAB>rel | B<TAB>rel<TAB>orig_sha256
-F	.local/lib/fcitx5/abc.so	<sha256>	755
+F	.local/lib/fcitx5/libabc.so	<sha256>	755
 D	.local/share/abc
 B	.config/abc/config.ini	<orig_sha256>
 ```
@@ -280,7 +283,7 @@ bash tests/deploy/test_install_uninstall.sh
 | 22 | 重复安装幂等 | 第二次安装 `新建 0/更新 3/跳过 1/备份保留 0`；清单条目与文件 sha 不变；无 rollback 残留；`.abc-im` 只有 `manifest.tsv` |
 | 23 | dry-run 准确性 | 首次 `新建 4`、逐项 4 条 `[新建]`、不创建前缀；已安装后 `新建 0/更新 3/跳过 1`、3 条 `[更新-本项目]`、目录快照完全一致 |
 | 24 | 备份恢复失败 | 备份缺失 / sha 不符均退出码 2，分别报"备份缺失"/"校验不符"，输出"卸载未完成"且无"卸载完成"；不符备份保留、清单 `restore-incomplete`、目标不被损坏内容覆盖 |
-| 25 | 安装入口与路径边界 | 检测到 A4 参考脚本 `manifest.list` 时安装/卸载均拒绝（退出码 1）；正式入口只写前缀内，前缀外无 `abc.so`，`/usr`、`/opt` 无本项目文件 |
+| 25 | 安装入口与路径边界 | 检测到 A4 参考脚本 `manifest.list` 时安装/卸载均拒绝（退出码 1）；正式入口只写前缀内，前缀外无 `libabc.so`，`/usr`、`/opt` 无本项目文件 |
 | 26 | `FCITX_ADDON_DIRS` | `--print-env` 三种输入（未设置/已设置/已含本项目）输出正确且零变更；不修改 `~/.bashrc`、不创建 `environment.d`/`~/.profile` |
 
 `tests/deploy/CMakeLists.txt` 将 `bash -n` 与 `shellcheck` 纳入 CTest（shellcheck 不存在时

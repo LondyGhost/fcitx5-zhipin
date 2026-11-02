@@ -16,7 +16,7 @@ INSTALL = ROOT / "deploy" / "fcitx5-addon" / "install-user.sh"
 UNINSTALL = ROOT / "deploy" / "fcitx5-addon" / "uninstall-user.py"
 
 ALLOWED = {
-    "lib/fcitx5/abc.so",
+    "lib/fcitx5/libabc.so",
     "share/fcitx5/addon/abc.conf",
     "share/fcitx5/inputmethod/abc.conf",
 }
@@ -68,7 +68,7 @@ def main() -> None:
         staging = make_staging(base)
         prefix = base / "home" / "user" / ".local"
         prefix.mkdir(parents=True)
-        preexisting = prefix / "lib" / "fcitx5" / "abc.so"
+        preexisting = prefix / "lib" / "fcitx5" / "libabc.so"
         preexisting.parent.mkdir(parents=True)
         preexisting.write_text("old\n", encoding="utf-8")
         unrelated = prefix / "share" / "keep.txt"
@@ -84,7 +84,8 @@ def main() -> None:
             if not (prefix / rel).is_file():
                 raise SystemExit(f"missing installed file: {rel}")
 
-        for blocked in ("/usr", "/usr/local", "/opt", "/opt/abc", "/"):
+        for blocked in ("/usr", "/usr/local", "/opt", "/opt/abc", "/",
+                        "/tmp/../usr/abc"):
             blocked_staging = make_staging(base / "blocked")
             env = os.environ.copy()
             env["MSYS_NO_PATHCONV"] = "1"
@@ -97,8 +98,27 @@ def main() -> None:
                 sys.stderr.buffer.write(result.stderr or b"")
                 raise SystemExit(f"install into {blocked} was not refused")
 
+        # A not-yet-created child below a symlink to a system directory must
+        # also be rejected before mkdir or file copy.
+        system_link = base / "system-link"
+        if sys.platform.startswith("linux"):
+            try:
+                system_link.symlink_to("/usr", target_is_directory=True)
+            except (OSError, NotImplementedError):
+                pass
+            else:
+                result = subprocess.run(
+                    [git_sh(), str(INSTALL), "--staging", str(staging),
+                     "--prefix", str(system_link / "abc-new-prefix"), "--dry-run"],
+                    capture_output=True, env=env)
+                if result.returncode == 0:
+                    sys.stderr.buffer.write(result.stdout or b"")
+                    sys.stderr.buffer.write(result.stderr or b"")
+                    raise SystemExit(
+                        "install through symlink into /usr was not refused")
+
         run([sys.executable, str(UNINSTALL), "--prefix", str(prefix)])
-        for rel in ALLOWED - {"lib/fcitx5/abc.so"}:
+        for rel in ALLOWED - {"lib/fcitx5/libabc.so"}:
             if (prefix / rel).exists():
                 raise SystemExit(f"uninstall left {rel}")
         if preexisting.read_text(encoding="utf-8") != "old\n":

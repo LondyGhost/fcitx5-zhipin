@@ -23,6 +23,10 @@ constexpr uint32_t kReturn = 0xff0d;
 constexpr uint32_t kEscape = 0xff1b;
 constexpr uint32_t kPrior = 0xff55;  // PageUp
 constexpr uint32_t kNext = 0xff56;   // PageDown
+constexpr uint32_t kLeft = 0xff51;   // ←
+constexpr uint32_t kUp = 0xff52;     // ↑
+constexpr uint32_t kRight = 0xff53;  // →
+constexpr uint32_t kDown = 0xff54;   // ↓
 constexpr uint32_t kKpEnter = 0xff8d;
 constexpr uint32_t kKp0 = 0xffb0;
 constexpr uint32_t kKp9 = 0xffb9;
@@ -30,7 +34,18 @@ constexpr uint32_t kKpPrior = 0xff9a;
 constexpr uint32_t kKpNext = 0xff9b;
 constexpr uint32_t kShiftL = 0xffe1;
 constexpr uint32_t kShiftR = 0xffe2;
+constexpr uint32_t kControlL = 0xffe3;
+constexpr uint32_t kControlR = 0xffe4;
+constexpr uint32_t kAltL = 0xffe9;
+constexpr uint32_t kAltR = 0xffea;
+constexpr uint32_t kSuperL = 0xffeb;
+constexpr uint32_t kSuperR = 0xffec;
 constexpr uint32_t kSpace = 0x0020;
+// 主键盘的 - 和 =（智能ABC 的翻页键）。注意不是小键盘的 KP_Subtract/KP_Equal。
+constexpr uint32_t kMinus = 0x002d;  // - （主键盘）
+constexpr uint32_t kEqual = 0x003d;  // = （主键盘）
+constexpr uint32_t kKpSubtract = 0xffad;  // 小键盘 -
+constexpr uint32_t kKpEqual = 0xffbd;     // 小键盘 =
 constexpr uint32_t kDigit0 = 0x0030;
 constexpr uint32_t kDigit9 = 0x0039;
 constexpr uint32_t kUpperA = 0x0041;
@@ -77,6 +92,15 @@ ModeSwitchKey parseModeSwitchKey(const char* name);
 // 按键释放一律为 kUnknown（不消费、交还 fcitx5），唯一例外是修饰键热键的
 // 释放事件，它映射为 kModeSwitch。
 KeyCommand toKeyCommand(const KeyInput& input, ModeSwitchKey modeSwitchKey);
+
+// 该命令是否应交给核心状态机。
+// 核心把 kUnknown 当「未处理键」（engine.md 4.3）：提交缓冲原文并清空组合。
+// 真实键盘每个字母都是 press + release，若把释放也送进核心，刚出现的预编辑会在
+// 释放时立刻被提交上屏。因此除配置热键的修饰键释放（kModeSwitch）外，
+// 释放事件必须在适配层拦下。
+inline bool isDispatchableKey(const KeyCommand& command, bool isRelease) {
+  return !(isRelease && command.code == KeyCode::kUnknown);
+}
 
 }  // namespace addon
 }  // namespace abc

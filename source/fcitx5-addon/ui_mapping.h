@@ -28,10 +28,14 @@ struct UiAction {
   int32_t highlight = -1;
 };
 
-// preeditInClient 对应 AddonSettings.preeditInClient：
-// false 时 kSetPreedit 的 text 为空（不向应用窗口送预编辑）。
-std::vector<UiAction> mapResult(const abc::EngineResult& result,
-                                bool preeditInClient);
+// 映射总是产出预编辑文本：kComposing 为字母缓冲，kSelecting 为当前高亮候选
+// （对齐智能ABC/QQ拼音的组字框：按空格后框里换成候选词）。
+// 至于这段文本是送到客户端内联，还是由输入窗自己画，由执行层按
+// preeditInClient 配置与客户端能力决定，不在本层。
+//
+// 候选呈现策略：只有 kSelecting（空格后进入的选择态）才产出 kSetCandidates；
+// kComposing 阶段一律 kClearCandidates，即「先看字母、按空格才出候选」。
+std::vector<UiAction> mapResult(const abc::EngineResult& result);
 
 }  // namespace addon
 }  // namespace abc

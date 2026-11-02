@@ -43,13 +43,24 @@ done
 [ -n "$staging" ] || die "missing --staging <dir>"
 [ -d "$staging" ] || die "staging directory does not exist: $staging"
 
-# 规范化后拒绝系统路径。比较时去掉末尾斜杠。
-# pwd 的错误不能混进路径，否则拒绝判断会被多行输出绕过。
-if [ -d "$prefix" ]; then
-  normalized=$(CDPATH= cd -- "$prefix" && pwd) || die "cannot resolve prefix: $prefix"
-else
-  normalized=$prefix
-fi
+case "/$prefix/" in
+  */../*) die "prefix must not contain a parent-directory component: $prefix" ;;
+esac
+
+# 解析已有父目录的物理路径，再接回尚不存在的后缀，防止经符号链接
+# 创建 /usr 或 /opt 下的新目录时绕过路径拒绝。
+probe=$prefix
+suffix=""
+while [ ! -e "$probe" ]; do
+  parent=${probe%/*}
+  component=${probe##*/}
+  [ "$parent" != "$probe" ] || parent=.
+  [ -n "$component" ] || die "cannot resolve prefix: $prefix"
+  suffix="/$component$suffix"
+  probe=$parent
+done
+normalized=$(CDPATH= cd -P -- "$probe" && pwd) || die "cannot resolve prefix: $prefix"
+normalized=${normalized%/}$suffix
 normalized=${normalized%/}
 case "$normalized" in
   ""|/|/usr|/usr/*|/opt|/opt/*)

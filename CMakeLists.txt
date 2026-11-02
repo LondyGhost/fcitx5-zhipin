@@ -41,8 +41,9 @@ set(ABC_SOURCE_MODULES
   core            # A1 核心状态机（abc_core）
   dict-importer   # A2 Rime 词库导入器（abc_dict_import）
   dictionary      # A3 运行时词典与候选检索（abc_dictionary）
-  fcitx5-addon    # A4 fcitx5 addon 适配层（自行 find_package，缺依赖时优雅跳过）
   config          # A5 配置解析（abc_config）
+  rime            # B 方案：librime 后端（abc_rime），缺 librime 时优雅跳过
+  fcitx5-addon    # A4 fcitx5 addon 适配层（自行 find_package，缺依赖时优雅跳过）
 )
 set(ABC_TEST_MODULES
   smoke           # A0 接口冒烟测试

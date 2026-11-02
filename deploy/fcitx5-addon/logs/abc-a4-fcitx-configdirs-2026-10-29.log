@@ -1,0 +1,207 @@
+I2026-10-29 00:34:57.558026 instance.cpp:669] Starting fcitx5 5.1.23
+D2026-10-29 00:34:57.561497 i18n.cpp:55] Add gettext domain fcitx5 at optional(has_value=0 )
+D2026-10-29 00:34:57.563471 instance.cpp:2053] Trigger Key: Control+space Zenkaku_Hankaku Hangul
+I2026-10-29 00:34:57.563487 instance.cpp:1448] Override Enabled Addons: {}
+I2026-10-29 00:34:57.563491 instance.cpp:1449] Override Disabled Addons: {}
+D2026-10-29 00:34:57.564824 addonmanager.cpp:170] Call loadAddon() with waylandim checkDependencies() returns 1 Dep: [(core, SemanticVersion(5.1.23)), (wayland, SemanticVersion(5.1.23))] OptDep: []
+D2026-10-29 00:34:57.564837 addonmanager.cpp:170] Call loadAddon() with wayland checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23))] OptDep: []
+E2026-10-29 00:34:57.566545 waylandmodule.cpp:266] Failed to open wayland connection
+I2026-10-29 00:34:57.566563 addonmanager.cpp:208] Loaded addon wayland
+D2026-10-29 00:34:57.566568 addonmanager.cpp:170] Call loadAddon() with unicode checkDependencies() returns 1 Dep: [(core, SemanticVersion(5.1.23))] OptDep: [(clipboard, SemanticVersion(0.1.0))]
+D2026-10-29 00:34:57.566573 addonmanager.cpp:170] Call loadAddon() with xcb checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23))] OptDep: []
+I2026-10-29 00:34:57.567708 addonmanager.cpp:208] Loaded addon xcb
+D2026-10-29 00:34:57.567719 addonmanager.cpp:170] Call loadAddon() with quickphrase checkDependencies() returns 0 Dep: [] OptDep: []
+I2026-10-29 00:34:57.568708 addonmanager.cpp:208] Loaded addon quickphrase
+D2026-10-29 00:34:57.568720 addonmanager.cpp:170] Call loadAddon() with dbus checkDependencies() returns 1 Dep: [(core, SemanticVersion(5.1.23)), (keyboard, SemanticVersion(0.1.0))] OptDep: [(xcb, SemanticVersion(0.1.0)), (wayland, SemanticVersion(0.1.0))]
+D2026-10-29 00:34:57.568727 addonmanager.cpp:170] Call loadAddon() with dbusfrontend checkDependencies() returns 1 Dep: [(core, SemanticVersion(5.1.23)), (dbus, SemanticVersion(0.1.0))] OptDep: []
+D2026-10-29 00:34:57.568731 addonmanager.cpp:170] Call loadAddon() with pinyinhelper checkDependencies() returns 1 Dep: [(core, SemanticVersion(5.1.22))] OptDep: [(quickphrase, SemanticVersion(0.1.0)), (clipboard, SemanticVersion(0.1.0))]
+D2026-10-29 00:34:57.568735 addonmanager.cpp:170] Call loadAddon() with clipboard checkDependencies() returns 0 Dep: [] OptDep: [(core, SemanticVersion(5.1.23)), (xcb, SemanticVersion(5.1.23)), (wayland, SemanticVersion(5.1.23))]
+D2026-10-29 00:34:57.568898 clipboard.cpp:366] Clear 0 password(s) in clipboard history.
+I2026-10-29 00:34:57.568907 addonmanager.cpp:208] Loaded addon clipboard
+D2026-10-29 00:34:57.568911 addonmanager.cpp:170] Call loadAddon() with fcitx4frontend checkDependencies() returns 1 Dep: [(core, SemanticVersion(5.1.23)), (dbus, SemanticVersion(0.1.0))] OptDep: [(xcb, SemanticVersion(0.1.0))]
+D2026-10-29 00:34:57.568915 addonmanager.cpp:170] Call loadAddon() with ibusfrontend checkDependencies() returns 1 Dep: [(core, SemanticVersion(5.1.23)), (dbus, SemanticVersion(0.1.0))] OptDep: []
+D2026-10-29 00:34:57.568919 addonmanager.cpp:170] Call loadAddon() with imselector checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23))] OptDep: []
+I2026-10-29 00:34:57.569067 addonmanager.cpp:208] Loaded addon imselector
+D2026-10-29 00:34:57.569077 addonmanager.cpp:170] Call loadAddon() with xim checkDependencies() returns 1 Dep: [(core, SemanticVersion(5.1.23)), (xcb, SemanticVersion(0.1.0))] OptDep: [(dbus, SemanticVersion(0.1.0)), (ibusfrontend, SemanticVersion(0.1.0))]
+D2026-10-29 00:34:57.569083 addonmanager.cpp:170] Call loadAddon() with keyboard checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23))] OptDep: [(xcb, SemanticVersion(0.1.0)), (spell, SemanticVersion(0.1.0)), (notifications, SemanticVersion(0.1.0)), (emoji, SemanticVersion(0.1.0)), (quickphrase, SemanticVersion(0.1.0))]
+D2026-10-29 00:34:57.569609 i18n.cpp:55] Add gettext domain xkeyboard-config at optional(has_value=1 "")
+I2026-10-29 00:34:57.569640 keyboard.cpp:229] Attempting to load keyboard from: ["/usr/share/xkeyboard-config-2"] Rule: evdev
+I2026-10-29 00:34:57.573574 addonmanager.cpp:208] Loaded addon keyboard
+D2026-10-29 00:34:57.573585 addonmanager.cpp:170] Call loadAddon() with waylandim checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23)), (wayland, SemanticVersion(5.1.23))] OptDep: []
+I2026-10-29 00:34:57.573762 addonmanager.cpp:208] Loaded addon waylandim
+D2026-10-29 00:34:57.573770 addonmanager.cpp:170] Call loadAddon() with unicode checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23))] OptDep: [(clipboard, SemanticVersion(0.1.0))]
+I2026-10-29 00:34:57.573889 addonmanager.cpp:208] Loaded addon unicode
+D2026-10-29 00:34:57.573897 addonmanager.cpp:170] Call loadAddon() with dbus checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23)), (keyboard, SemanticVersion(0.1.0))] OptDep: [(xcb, SemanticVersion(0.1.0)), (wayland, SemanticVersion(0.1.0))]
+I2026-10-29 00:34:57.575368 addonmanager.cpp:208] Loaded addon dbus
+D2026-10-29 00:34:57.575389 addonmanager.cpp:170] Call loadAddon() with dbusfrontend checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23)), (dbus, SemanticVersion(0.1.0))] OptDep: []
+I2026-10-29 00:34:57.575855 addonmanager.cpp:208] Loaded addon dbusfrontend
+D2026-10-29 00:34:57.575867 addonmanager.cpp:170] Call loadAddon() with pinyinhelper checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.22))] OptDep: [(quickphrase, SemanticVersion(0.1.0)), (clipboard, SemanticVersion(0.1.0))]
+D2026-10-29 00:34:57.576388 i18n.cpp:55] Add gettext domain fcitx5-chinese-addons at optional(has_value=1 "")
+I2026-10-29 00:34:57.576413 addonmanager.cpp:208] Loaded addon pinyinhelper
+D2026-10-29 00:34:57.576420 addonmanager.cpp:170] Call loadAddon() with fcitx4frontend checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23)), (dbus, SemanticVersion(0.1.0))] OptDep: [(xcb, SemanticVersion(0.1.0))]
+I2026-10-29 00:34:57.579490 addonmanager.cpp:208] Loaded addon fcitx4frontend
+D2026-10-29 00:34:57.579503 addonmanager.cpp:170] Call loadAddon() with ibusfrontend checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23)), (dbus, SemanticVersion(0.1.0))] OptDep: []
+D2026-10-29 00:34:57.579803 ibusfrontend.cpp:886] Requesting IBus service name.
+I2026-10-29 00:34:57.580293 addonmanager.cpp:208] Loaded addon ibusfrontend
+D2026-10-29 00:34:57.580308 addonmanager.cpp:170] Call loadAddon() with xim checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23)), (xcb, SemanticVersion(0.1.0))] OptDep: [(dbus, SemanticVersion(0.1.0)), (ibusfrontend, SemanticVersion(0.1.0))]
+I2026-10-29 00:34:57.580578 addonmanager.cpp:208] Loaded addon xim
+I2026-10-29 00:34:57.607093 inputmethodmanager.cpp:213] Found 753 input method(s) in addon keyboard
+D2026-10-29 00:34:57.607340 addonmanager.cpp:170] Call loadAddon() with kimpanel checkDependencies() returns 0 Dep: [(dbus, SemanticVersion(5.1.23)), (core, SemanticVersion(5.1.23))] OptDep: [(classicui, SemanticVersion(5.1.23))]
+I2026-10-29 00:34:57.607698 addonmanager.cpp:208] Loaded addon kimpanel
+D2026-10-29 00:34:57.607716 addonmanager.cpp:170] Call loadAddon() with virtualkeyboard checkDependencies() returns 0 Dep: [(dbus, SemanticVersion(0.1.0)), (core, SemanticVersion(5.1.23))] OptDep: []
+I2026-10-29 00:34:57.607966 addonmanager.cpp:208] Loaded addon virtualkeyboard
+D2026-10-29 00:34:57.607996 addonmanager.cpp:170] Call loadAddon() with classicui checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23))] OptDep: [(xcb, SemanticVersion(0.1.0)), (wayland, SemanticVersion(0.1.0)), (notificationitem, SemanticVersion(0.1.0)), (dbus, SemanticVersion(0.1.0)), (waylandim, SemanticVersion(0.1.0))]
+I2026-10-29 00:34:57.621471 addonmanager.cpp:208] Loaded addon classicui
+D2026-10-29 00:34:57.621504 userinterfacemanager.cpp:330] Switching UI addon to classicui
+D2026-10-29 00:34:57.621510 classicui.cpp:346] Resume ClassicUI
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.0' (uid=1000 piD2026-10-29 00:34:57.621515 addonmanager.cpp:170] Call loadAddon() with notificationitem checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23)), (dbus, SemanticVersion(0.1.0))] OptDep: []
+d=1847883 comm="fcitx5 -D --verbose *=5")
+I2026-10-29 00:34:57.621878 addonmanager.cpp:208] Loaded addon notificationitem
+D2026-10-29 00:34:57.621904 notificationitem.cpp:430] Enable SNI
+D2026-10-29 00:34:57.621921 addonmanager.cpp:170] Call loadAddon() with notifications checkDependencies() returns 0 Dep: [(core, SemanticVersion(5.1.23)), (dbus, SemanticVersion(0.1.0))] OptDep: []
+I2026-10-29 00:34:57.622398 addonmanager.cpp:208] Loaded addon notifications
+D2026-10-29 00:34:57.624499 clipboard.cpp:366] Clear 0 password(s) in clipboard history.
+I2026-10-29 00:34:57.624574 dbusmodule.cpp:844] Service name change: org.fcitx.Fcitx5  :1.0
+I2026-10-29 00:34:57.624609 kimpanel.cpp:138] Kimpanel new owner: 
+I2026-10-29 00:34:57.624621 virtualkeyboard.cpp:230] VirtualKeyboard new owner: 
+D2026-10-29 00:34:57.624636 notificationitem.cpp:319] Old SNI Name:  New Name: 
+D2026-10-29 00:34:57.624640 notificationitem.cpp:324] Current SNI enabled: 1
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.640: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847907): Gtk-WARNING **: 00:34:57.655: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.657: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847912): Gtk-WARNING **: 00:34:57.672: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.683: Choosing gtk.portal for org.freedesktop.impl.portal.Settings as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847917): Gtk-WARNING **: 00:34:57.697: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.699: Failed to create settings proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.699: Not providing Settings portal: No working backend
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.699: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847920): Gtk-WARNING **: 00:34:57.713: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.714: Failed to create file chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.714: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847923): Gtk-WARNING **: 00:34:57.729: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.730: Failed to create app chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.730: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847926): Gtk-WARNING **: 00:34:57.744: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.745: Failed to create print proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.746: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847929): Gtk-WARNING **: 00:34:57.760: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.761: Failed to create notification proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.761: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847932): Gtk-WARNING **: 00:34:57.775: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.776: Failed to create inhibit proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.776: The location portal requires an access impl
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.777: The camera portal requires an access impl
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.777: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847935): Gtk-WARNING **: 00:34:57.790: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.792: Failed to create account proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.792: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847938): Gtk-WARNING **: 00:34:57.806: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.807: Failed to create email proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.807: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.4' (uid=1000 pid=1847885 comm="/usr/lib/xdg-desktop-portal")
+
+(xdg-desktop-portal-gtk:1847941): Gtk-WARNING **: 00:34:57.821: cannot open display: 
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/lib/xdg-desktop-portal:1847885): xdg-desktop-portal-WARNING **: 00:34:57.823: Failed to create dynamic_launcher proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+dbus-daemon[1847882]: [session uid=1000 pid=1847882 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+I2026-10-29 00:34:57.823500 portalsettingmonitor.cpp:97] A new portal show up, start a new query.
+D2026-10-29 00:34:57.823827 portalsettingmonitor.cpp:121] DBus call error: org.freedesktop.DBus.Error.UnknownMethod No such interface “org.freedesktop.portal.Settings” on object at path /org/freedesktop/portal/desktop
+D2026-10-29 00:34:58.668575 ibusfrontend.cpp:950] Found ibus socket files: {"/home/londy/.cache/abc-a4/clean/build/fcitx5-test-home/.config/ibus/bus/aa81ac7f77d6463bb80b1bc479b7b1db-unix-0", "/home/londy/.cache/abc-a4/clean/build/fcitx5-test-home/.config/ibus/bus/aa81ac7f77d6463bb80b1bc479b7b1db-unix-wayland-0"}
+D2026-10-29 00:34:58.668662 ibusfrontend.cpp:186] Found ibus address from file "/home/londy/.cache/abc-a4/clean/build/fcitx5-test-home/.config/ibus/bus/aa81ac7f77d6463bb80b1bc479b7b1db-unix-0": (, 0)
+D2026-10-29 00:34:58.668678 ibusfrontend.cpp:186] Found ibus address from file "/home/londy/.cache/abc-a4/clean/build/fcitx5-test-home/.config/ibus/bus/aa81ac7f77d6463bb80b1bc479b7b1db-unix-wayland-0": (, 0)
+D2026-10-29 00:34:58.668687 ibusfrontend.cpp:1066] Write IBus bus address as: unix:path=/tmp/dbus-loYcqO9xFl,guid=06a2e67722b9a521b18db15f6ae22431
+D2026-10-29 00:34:58.668701 ibusfrontend.cpp:1082] IBus address is written with: unix:path=/tmp/dbus-loYcqO9xFl,guid=06a2e67722b9a521b18db15f6ae22431,fcitx_random_string=2241a3f2974b40e8a4bf5f9cd55d0fff
+D2026-10-29 00:34:58.668707 ibusfrontend.cpp:1089] Writing ibus daemon info.
+=========================
+Fcitx 5.1.23 -- Get Signal No.: 15
+Date: try "date -d @1793205301" if you are using GNU date ***
+ProcessID: 1847883
+fcitx5(+0x13b91) [0x5639ab79eb91]
+/usr/lib/libc.so.6(+0x3e6f0) [0x7feef503e6f0]
+/usr/lib/libc.so.6(epoll_wait+0x8d) [0x7feef5120bfd]
+/usr/lib/libsystemd.so.0(sd_event_wait+0x1f2) [0x7feef57875e2]
+/usr/lib/libsystemd.so.0(sd_event_run+0x2cc) [0x7feef5788b3c]
+/usr/lib/libsystemd.so.0(sd_event_loop+0x90) [0x7feef5788ee0]
+/usr/lib/libFcitx5Utils.so.2(_ZN5fcitx9EventLoop4execEv+0x2c) [0x7feef59baefc]
+/usr/lib/libFcitx5Core.so.7(_ZN5fcitx8Instance4execEv+0x5e) [0x7feef5a8b74e]
+fcitx5(+0x11aa8) [0x5639ab79caa8]
+/usr/lib/libc.so.6(+0x27781) [0x7feef5027781]
+/usr/lib/libc.so.6(__libc_start_main+0x89) [0x7feef50278b9]
+fcitx5(+0x12e95) [0x5639ab79de95]
+I2026-10-29 00:35:01.553358 instance.cpp:1498] Save before exiting...
+I2026-10-29 00:35:01.561784 addonmanager.cpp:312] Unloading addon notifications
+I2026-10-29 00:35:01.561834 addonmanager.cpp:312] Unloading addon notificationitem
+I2026-10-29 00:35:01.561875 addonmanager.cpp:312] Unloading addon classicui
+I2026-10-29 00:35:01.562323 addonmanager.cpp:312] Unloading addon virtualkeyboard
+I2026-10-29 00:35:01.562350 addonmanager.cpp:312] Unloading addon kimpanel
+I2026-10-29 00:35:01.562364 addonmanager.cpp:312] Unloading addon xim
+I2026-10-29 00:35:01.562375 addonmanager.cpp:312] Unloading addon ibusfrontend
+I2026-10-29 00:35:01.569368 addonmanager.cpp:312] Unloading addon fcitx4frontend
+I2026-10-29 00:35:01.569421 addonmanager.cpp:312] Unloading addon pinyinhelper
+I2026-10-29 00:35:01.569442 addonmanager.cpp:312] Unloading addon dbusfrontend
+I2026-10-29 00:35:01.569478 addonmanager.cpp:312] Unloading addon dbus
+I2026-10-29 00:35:01.569528 addonmanager.cpp:312] Unloading addon unicode
+I2026-10-29 00:35:01.569544 addonmanager.cpp:312] Unloading addon waylandim
+I2026-10-29 00:35:01.569559 addonmanager.cpp:312] Unloading addon keyboard
+I2026-10-29 00:35:01.569699 addonmanager.cpp:312] Unloading addon imselector
+I2026-10-29 00:35:01.569712 addonmanager.cpp:312] Unloading addon clipboard
+I2026-10-29 00:35:01.569729 addonmanager.cpp:312] Unloading addon quickphrase
+I2026-10-29 00:35:01.569939 addonmanager.cpp:312] Unloading addon xcb
+I2026-10-29 00:35:01.569952 addonmanager.cpp:312] Unloading addon wayland

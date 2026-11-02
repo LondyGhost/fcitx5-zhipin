@@ -22,8 +22,10 @@ struct AddonSettings {
   std::string indexPath;
   // 中英文切换热键（fcitx5 键名，A4 据此映射为 kModeSwitch）。默认 "Shift"。
   std::string modeSwitchKey = "Shift";
-  // 预编辑是否送入应用窗口（fcitx5 客户端 preedit）。默认 true。
-  bool preeditInClient = true;
+  // 预编辑是否送入应用窗口（fcitx5 客户端 preedit）。
+  // 默认 false：走 fcitx 自己的组字框（智能ABC/QQ拼音样式），
+  // 客户端内联只在显式开启时使用。
+  bool preeditInClient = false;
 };
 
 // 解析结果。warnings 为脱敏警告（"warning: line N: key 'k': 原因"，

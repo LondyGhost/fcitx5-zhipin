@@ -204,6 +204,10 @@ class EngineSessionImpl final : public EngineSession {
       case KeyCode::kDigit:
       case KeyCode::kPageUp:
       case KeyCode::kPageDown:
+      case KeyCode::kLeft:
+      case KeyCode::kRight:
+      case KeyCode::kUp:
+      case KeyCode::kDown:
       case KeyCode::kUnknown:
         nonHandledKey(effects, consumed);
         break;
@@ -269,6 +273,7 @@ class EngineSessionImpl final : public EngineSession {
         consumed = true;
         break;
       case KeyCode::kPageUp:
+      case KeyCode::kUp:
         if (page_ > 0 && pageOffset(page_ - 1) <= kMaxOffset) {
           --page_;
           highlight_ = 0;
@@ -277,12 +282,35 @@ class EngineSessionImpl final : public EngineSession {
         consumed = true;  // 首页边界：消费但无变化
         break;
       case KeyCode::kPageDown:
+      case KeyCode::kDown:
         if (page_ + 1 < pageCount_ && pageOffset(page_ + 1) <= kMaxOffset) {
           ++page_;
           highlight_ = 0;
           lookupAt(pageOffset(page_));
         }
         consumed = true;  // 末页边界：消费但无变化
+        break;
+      case KeyCode::kLeft:
+        // 选择态内移动高亮：只改高亮位置，不提交、不退出选择态。
+        if (!candidates_.empty()) {
+          if (highlight_ <= 0) {
+            highlight_ = 0;
+          } else {
+            --highlight_;
+          }
+        }
+        consumed = true;
+        break;
+      case KeyCode::kRight:
+        if (!candidates_.empty()) {
+          if (highlight_ < 0) {
+            highlight_ = 0;
+          } else if (static_cast<std::size_t>(highlight_) + 1 <
+                     candidates_.size()) {
+            ++highlight_;
+          }
+        }
+        consumed = true;
         break;
       case KeyCode::kEnter:
         effects.push_back(commitTextEffect(buffer_));  // 原文，非候选

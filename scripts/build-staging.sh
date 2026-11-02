@@ -8,14 +8,14 @@
 # 布局来源（不自行发明路径）：
 #   - addon 侧：deploy/fcitx5-addon/install-manifest.md（A4 冻结）+
 #     source/fcitx5-addon/CMakeLists.txt 的 install() 规则：
-#       lib/fcitx5/abc.so
+#       lib/fcitx5/libabc.so
 #       share/fcitx5/addon/abc.conf
 #       share/fcitx5/inputmethod/abc.conf
 #     以上路径相对于安装前缀，用户级前缀即 $HOME/.local → staging 落点 <addon-dir>。
 #   - 配置侧：docs/interfaces/config.md 示例路径 ~/.config/abc/config.ini。
 #
 # 产物（--out 下，HOME 相对）：
-#   <addon-dir>/lib/fcitx5/abc.so
+#   <addon-dir>/lib/fcitx5/libabc.so
 #   <addon-dir>/share/fcitx5/addon/abc.conf
 #   <addon-dir>/share/fcitx5/inputmethod/abc.conf
 #   .config/abc/config.ini
@@ -138,7 +138,7 @@ if [ -n "$(find "$FROM" -type l -print -quit 2>/dev/null)" ]; then
 fi
 
 # A4 冻结的 addon 相对路径（deploy/fcitx5-addon/install-manifest.md）
-ADDON_REQUIRED="lib/fcitx5/abc.so
+ADDON_REQUIRED="lib/fcitx5/libabc.so
 share/fcitx5/addon/abc.conf
 share/fcitx5/inputmethod/abc.conf"
 
@@ -204,7 +204,7 @@ printf '%s\n' "$CONFIG_REL" > "$OUT/.abc-im-no-overwrite.list" || {
   err "写控制文件失败: .abc-im-no-overwrite.list"; exit "$EXIT_FAIL"; }
 
 # 组装后复核（防止 cp 部分失败造成"看似成功"）
-for rel in "$ADDON_DIR/lib/fcitx5/abc.so" \
+for rel in "$ADDON_DIR/lib/fcitx5/libabc.so" \
            "$ADDON_DIR/share/fcitx5/addon/abc.conf" \
            "$ADDON_DIR/share/fcitx5/inputmethod/abc.conf" \
            "$CONFIG_REL"; do

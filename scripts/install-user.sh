@@ -88,7 +88,7 @@ print_addon_env() {
     while IFS=$'\t' read -r ftype rel _; do
       [ "$ftype" = "F" ] || continue
       case "$rel" in
-        */fcitx5/abc.so) libdir="$PREFIX/$(dirname -- "$rel")"; break ;;
+        */fcitx5/libabc.so) libdir="$PREFIX/$(dirname -- "$rel")"; break ;;
       esac
     done < "$MANIFEST"
   fi

@@ -18,22 +18,36 @@ if(NOT Fcitx5Core_FOUND)
   return()
 endif()
 
-# 配置解析（A5）与词典加载（A3）是可选链接：缺席时 addon 使用契约默认值，
-# 词典加载符号由运行时按需解析，不阻断 addon 自身的构建。
+# A3/A5 在根构建中均为 addon 的运行期必需模块；缺目标时保持优雅跳过，
+# 避免产出看似可安装、实际不具备字典与配置能力的 addon。
+if(NOT TARGET abc_dictionary OR NOT TARGET abc_config)
+  message(STATUS "abc: abc_dictionary 或 abc_config 不存在，跳过 fcitx5 addon")
+  return()
+endif()
+
 set(ABC_ADDON_OPTIONAL_LIBS)
-if(TARGET abc_config)
-  list(APPEND ABC_ADDON_OPTIONAL_LIBS abc_config)
+list(APPEND ABC_ADDON_OPTIONAL_LIBS abc_config abc_dictionary)
+
+# B 方案：librime 后端可选。存在则链接，addon 内部按 __has_include 自动启用。
+if(TARGET abc_rime)
+  list(APPEND ABC_ADDON_OPTIONAL_LIBS abc_rime)
 endif()
-if(TARGET abc_dictionary)
-  list(APPEND ABC_ADDON_OPTIONAL_LIBS abc_dictionary)
-endif()
+
+# MODULE 需要链接 A1/A3/A5 静态归档；这些归档若未以 PIC 编译会在
+# x86_64/ELF linker 阶段失败。只对 addon 的实际静态依赖目标启用 PIC。
+foreach(_abc_pic_target IN ITEMS abc_core abc_dictionary abc_config)
+  if(TARGET "${_abc_pic_target}")
+    set_target_properties("${_abc_pic_target}" PROPERTIES
+      POSITION_INDEPENDENT_CODE ON)
+  endif()
+endforeach()
 
 add_library(abc_fcitx5_addon MODULE abcengine.cpp keyconv.cpp ui_mapping.cpp)
 set_target_properties(abc_fcitx5_addon PROPERTIES
   CXX_STANDARD 20
   CXX_STANDARD_REQUIRED ON
   CXX_EXTENSIONS OFF
-  PREFIX ""
+  PREFIX "lib"
   OUTPUT_NAME "abc")
 target_link_libraries(abc_fcitx5_addon PRIVATE
   abc_core

@@ -1,0 +1,17 @@
+Task: A4 fcitx5 5.1.23 target-host clean-build and integration verification
+Date: 2026-10-29
+Target: londy@192.168.1.250:47672
+Working directory: D:\workbuddy\linux智能ABC
+Command:
+ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p 47672 -o ConnectTimeout=10 londy@192.168.1.250 'printf "REMOTE_OK\\n"; uname -a; g++ --version | head -1; cmake --version | head -1; ninja --version; fcitx5 --version; pkg-config --modversion Fcitx5Core'
+
+Complete result:
+load pubkey "C:\Users\DELL/.ssh/id_ed25519": Permission denied
+No ECDSA host key is known for [192.168.1.250]:47672 and you have requested strict checking.
+Host key verification failed.
+
+Exit code: 255
+Outcome: No remote command ran. No files were transferred or changed on the target.
+Blockers: The default private key is not readable by the SSH client, and the target host key is not present in the trusted known_hosts database. Strict host-key checking was retained; no key scan or trust bypass was used.
+Sensitive data: No password, private-key content, token, or user input was read or recorded.
+Verification status: BLOCKED; no clean build, ctest, addon discovery, input-context integration, or Wayland application test was performed.

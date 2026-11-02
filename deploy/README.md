@@ -7,7 +7,7 @@
 | 路径 | 拥有者 | 说明 |
 |---|---|---|
 | `abc/config.ini` | A5 | 用户配置模板（键表符合 [`../docs/interfaces/config.md`](../docs/interfaces/config.md)），安装到 `~/.config/abc/config.ini`，**存在即跳过**，绝不覆盖用户配置 |
-| `fcitx5-addon/install-manifest.md` | A4 | addon 安装布局（**已确认**）：`lib/fcitx5/abc.so`、`share/fcitx5/addon/abc.conf`、`share/fcitx5/inputmethod/abc.conf`（相对 `$HOME/.local`） |
+| `fcitx5-addon/install-manifest.md` | A4 | addon 安装布局：`lib/fcitx5/libabc.so`（匹配 `Library=libabc`）、`share/fcitx5/addon/abc.conf`、`share/fcitx5/inputmethod/abc.conf`（相对 `$HOME/.local`） |
 | `fcitx5-addon/install-user.sh`、`fcitx5-addon/uninstall-user.sh` | A4 | A4 自测用的独立参考脚本（直接复制三个 addon 文件，清单为 `.abc-im/manifest.list`）。**不是部署入口** |
 
 ## 正式部署入口（A5，唯一）

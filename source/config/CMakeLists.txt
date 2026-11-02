@@ -6,3 +6,5 @@ target_include_directories(abc_config
   PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 target_link_libraries(abc_config PUBLIC abc_interfaces)
 target_link_libraries(abc_config PRIVATE abc_build_options)
+# A4 addon is a MODULE and links this archive; compile position-independent.
+set_target_properties(abc_config PROPERTIES POSITION_INDEPENDENT_CODE ON)

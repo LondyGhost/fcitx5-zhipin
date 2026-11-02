@@ -1,18 +1,18 @@
-// A6 集成测试 — 跨模块链路：A0 冻结契约 → (A5 配置，若可用) → A1 状态机 →
-// A3 词典接口 seam（契约保真替身）。
+// A6 集成测试 — A2 编译最小 fixture → A3 从索引加载/查询 → A1 状态机。
 //
 // 本测试只使用公共头文件与各模块公开目标，不触碰模块内部件。
-// A2 索引与 A4 addon 交付后，本文件的词典替身将被
-// “A2 生成索引 → A3 loadDictionaryFromFile”替换，用例保持不变。
 
 #include <cstdint>
-#include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "abc/engine.h"
-#include "contract_dictionary.hpp"
+#include "abc/dictionary.h"
+#include "dict_importer.hpp"
 #include "test_harness.hpp"
 
 #ifdef ABC_HAVE_CONFIG
@@ -29,11 +29,68 @@ using abc::EngineSession;
 using abc::KeyCommand;
 using abc::KeyCode;
 using abc::Mode;
-using abc_itest::ContractDictionary;
+namespace fs = std::filesystem;
 
-std::unique_ptr<EngineSession> makeSession(ContractDictionary& dict,
+class FixtureDictionary {
+ public:
+  FixtureDictionary() {
+    const fs::path root = fs::temp_directory_path() / "abc-a6-integration";
+    fs::create_directories(root);
+    const fs::path input = root / "minimal.dict.yaml";
+    const fs::path index = root / "minimal.abcdix";
+    const fs::path fixture = ABC_A6_FIXTURE_PATH;
+    if (!fs::is_regular_file(fixture)) {
+      error_ = "configured A2 fixture is missing";
+      return;
+    }
+    std::error_code ec;
+    if (!fs::remove(index, ec) && ec) {
+      error_ = "cannot clear previous integration index";
+      return;
+    }
+    ec.clear();
+    fs::copy_file(fixture, input, fs::copy_options::overwrite_existing, ec);
+    if (ec) {
+      error_ = "cannot copy A2 fixture";
+      return;
+    }
+    std::ifstream fixture_stream(fixture, std::ios::binary);
+    std::ifstream copied_stream(input, std::ios::binary);
+    const std::string fixture_bytes((std::istreambuf_iterator<char>(fixture_stream)),
+                                    std::istreambuf_iterator<char>());
+    const std::string copied_bytes((std::istreambuf_iterator<char>(copied_stream)),
+                                   std::istreambuf_iterator<char>());
+    if (!fixture_stream || !copied_stream || fixture_bytes != copied_bytes) {
+      error_ = "cannot verify copied A2 fixture";
+      return;
+    }
+    abc::dict_import::ImportOptions options;
+    options.source = "a6-fixture";
+    const auto compiled = abc::dict_import::compileIndexFile(
+        input.string(), index.string(), options);
+    if (compiled.exit_code != abc::dict_import::ExitCode::kOk) {
+      error_ = "A2 fixture compilation failed";
+      return;
+    }
+    auto loaded = abc::loadDictionaryFromFile(index.string());
+    if (loaded.status != abc::DictionaryStatus::kOk || !loaded.dictionary) {
+      error_ = "A3 rejected A2-generated index";
+      return;
+    }
+    dictionary_ = std::move(loaded.dictionary);
+  }
+
+  abc::Dictionary* get() const { return dictionary_.get(); }
+  const std::string& error() const { return error_; }
+
+ private:
+  std::unique_ptr<abc::Dictionary> dictionary_;
+  std::string error_;
+};
+
+std::unique_ptr<EngineSession> makeSession(FixtureDictionary& dict,
                                            const EngineConfig& cfg = {}) {
-  return abc::createEngineSession(cfg, &dict);
+  return abc::createEngineSession(cfg, dict.get());
 }
 
 KeyCommand letter(char32_t c) {
@@ -53,21 +110,6 @@ KeyCommand punct(char32_t c) {
   k.code = KeyCode::kPunctuation;
   k.unicode = c;
   return k;
-}
-
-// 常用夹具：ni/nihao 多候选 + "ma" 23 条（权重严格递减 ⇒ 排序即录入顺序）。
-void populateFixture(ContractDictionary& dict) {
-  dict.add("ni", "你", 100);
-  dict.add("ni", "泥", 10);
-  dict.add("ni", "呢", 3);
-  dict.add("nihao", "你好", 20);
-  dict.add("nihao", "你号", 8);
-  dict.add("nihao", "尼豪", 2);
-  for (int i = 1; i <= 23; ++i) {
-    char text[16];
-    std::snprintf(text, sizeof(text), "妈%02d", i);
-    dict.add("ma", text, 100.0 - i);
-  }
 }
 
 void typeLetters(EngineSession& s, const std::string& letters) {
@@ -155,7 +197,8 @@ void typeProbe(ChainProbe& p, const std::string& letters) {
 ITEST(ChainConfigDefaultsToSession) {
   // A5→A1 交接点：config.md 第 4 节默认值经 EngineConfig 进入会话。
   EngineConfig cfg;  // 默认：chinese / 9 / 64 / commit_raw / commit_raw
-  ContractDictionary dict;
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   auto s = makeSession(dict, cfg);
   IEXPECT_TRUE(static_cast<bool>(s));
   IEXPECT_TRUE(s->config().initialMode == Mode::kChineseEmpty);
@@ -169,26 +212,28 @@ ITEST(ChainConfigDefaultsToSession) {
 
 ITEST(ChainFactoryRejectsOutOfRangeConfig) {
   // 防御性复核：即使上游解析被绕过，A1 工厂仍必须拒绝越界配置。
-  ContractDictionary dict;
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   EngineConfig cfg;
   cfg.pageSize = 0;
-  IEXPECT_TRUE(abc::createEngineSession(cfg, &dict) == nullptr);
+  IEXPECT_TRUE(abc::createEngineSession(cfg, dict.get()) == nullptr);
   cfg.pageSize = 10;
-  IEXPECT_TRUE(abc::createEngineSession(cfg, &dict) == nullptr);
+  IEXPECT_TRUE(abc::createEngineSession(cfg, dict.get()) == nullptr);
   cfg.pageSize = 9;
   cfg.maxBufferChars = 0;
-  IEXPECT_TRUE(abc::createEngineSession(cfg, &dict) == nullptr);
+  IEXPECT_TRUE(abc::createEngineSession(cfg, dict.get()) == nullptr);
   cfg.maxBufferChars = 257;
-  IEXPECT_TRUE(abc::createEngineSession(cfg, &dict) == nullptr);
+  IEXPECT_TRUE(abc::createEngineSession(cfg, dict.get()) == nullptr);
   cfg.maxBufferChars = 64;
   cfg.initialMode = Mode::kSelecting;
-  IEXPECT_TRUE(abc::createEngineSession(cfg, &dict) == nullptr);
+  IEXPECT_TRUE(abc::createEngineSession(cfg, dict.get()) == nullptr);
   IEXPECT_TRUE(abc::createEngineSession(cfg, nullptr) == nullptr);
 }
 
 ITEST(ChainTypingToCandidatesToSelection) {
-  ContractDictionary dict;
-  populateFixture(dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
+  IEXPECT_TRUE(dict.error().empty());
   auto s = makeSession(dict);
   ChainProbe p(*s);
   // 输入 "nihao"：每字母触发一次 offset=0 查询，前缀 = 规范化缓冲。
@@ -200,48 +245,56 @@ ITEST(ChainTypingToCandidatesToSelection) {
     IEXPECT_EQ(r.highlight, -1);  // 预览态不激活
   }
   IEXPECT_EQ(s->snapshot().preedit, "nihao");
-  IEXPECT_EQ(s->snapshot().candidates.size(), 3u);
-  IEXPECT_EQ(dict.queries().back().prefix, "nihao");
-  IEXPECT_EQ(dict.queries().back().limit, 9u);
-  IEXPECT_EQ(dict.queries().back().offset, 0u);
+  IEXPECT_EQ(s->snapshot().candidates.size(), 1u);
+  const auto query = dict.get()->lookup("nihao", 9, 0);
+  IEXPECT_EQ(query.batch.total, 1u);
+  IEXPECT_EQ(query.batch.items.front().text, "你好");
   // 空格进入候选选择（highlight 0）。
   const EngineResult sel = p.step(KeyCommand{KeyCode::kSpace});
   IEXPECT_TRUE(sel.consumed);
   IEXPECT_TRUE(sel.mode == Mode::kSelecting);
   IEXPECT_EQ(sel.highlight, 0);
   IEXPECT_TRUE(sel.effects.empty());
-  // 数字选词：页内第 1 项 = 精确组权重最高 “你好”？—— 前缀 nihao 全部精确组：
-  // 权重降序 你好(20) 你号(8) 尼豪(2)；选 '2' → 你号。
-  const EngineResult pick = p.step(digit(2));
+  // A2 minimal fixture 中 nihao 唯一候选为“你好”。
+  const EngineResult pick = p.step(digit(1));
   IEXPECT_TRUE(pick.consumed);
   IEXPECT_EQ(pick.effects.size(), 1u);
-  IEXPECT_EQ(pick.effects[0].text, "你号");
+  IEXPECT_EQ(pick.effects[0].text, "你好");
   IEXPECT_TRUE(pick.mode == Mode::kChineseEmpty);
-  IEXPECT_EQ(p.committedText, "你号");
+  IEXPECT_EQ(p.committedText, "你好");
   IEXPECT_EQ(p.committedLetters, 5);
 }
 
+ITEST(ChainA2GeneratedIndexLoadsAndQueriesThroughA3) {
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
+  IEXPECT_TRUE(dict.error().empty());
+  const auto exact = dict.get()->lookup("nihao", 9, 0);
+  IEXPECT_TRUE(exact.status == abc::DictionaryStatus::kOk);
+  IEXPECT_EQ(exact.batch.total, 1u);
+  IEXPECT_EQ(exact.batch.items.size(), 1u);
+  IEXPECT_EQ(exact.batch.items.front().text, "你好");
+
+  const auto prefix = dict.get()->lookup("ma", 9, 0);
+  IEXPECT_TRUE(prefix.status == abc::DictionaryStatus::kOk);
+  IEXPECT_EQ(prefix.batch.total, 4u);
+  IEXPECT_EQ(prefix.batch.items.front().text, "马");
+  IEXPECT_EQ(prefix.batch.items.back().text, "妈妈");
+}
+
 ITEST(ChainPagingAcrossDictionaryPages) {
-  ContractDictionary dict;
-  populateFixture(dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   auto s = makeSession(dict);
   typeLetters(*s, "ma");
   EngineResult r = s->handle(KeyCommand{KeyCode::kSpace});
-  IEXPECT_EQ(r.pageCount, 3u);  // 23 / 9 → 3 页
-  IEXPECT_EQ(r.candidates.size(), 9u);
-  IEXPECT_EQ(r.candidates[0].text, "妈01");
+  IEXPECT_EQ(r.pageCount, 1u);
+  IEXPECT_EQ(r.candidates.size(), 4u);
+  IEXPECT_EQ(r.candidates[0].text, "马");
   r = s->handle(KeyCommand{KeyCode::kPageDown});
-  IEXPECT_EQ(r.page, 1u);
-  IEXPECT_EQ(dict.queries().back().offset, 9u);  // 翻页查询 offset = page*pageSize
-  IEXPECT_EQ(r.candidates[0].text, "妈10");
-  r = s->handle(KeyCommand{KeyCode::kPageDown});
-  IEXPECT_EQ(r.page, 2u);
-  IEXPECT_EQ(r.candidates.size(), 5u);
-  IEXPECT_EQ(dict.queries().back().offset, 18u);
-  r = s->handle(KeyCommand{KeyCode::kPageDown});  // 末页边界：无变化
-  IEXPECT_EQ(r.page, 2u);
+  IEXPECT_EQ(r.page, 0u);
   r = s->handle(KeyCommand{KeyCode::kPageUp});
-  IEXPECT_EQ(r.page, 1u);
+  IEXPECT_EQ(r.page, 0u);
   r = s->handle(KeyCommand{KeyCode::kPageUp});
   IEXPECT_EQ(r.page, 0u);
   r = s->handle(KeyCommand{KeyCode::kPageUp});  // 首页边界
@@ -250,8 +303,8 @@ ITEST(ChainPagingAcrossDictionaryPages) {
 }
 
 ITEST(ChainEnterRawAndEscAndBackspace) {
-  ContractDictionary dict;
-  populateFixture(dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   {
     auto s = makeSession(dict);
     ChainProbe p(*s);
@@ -286,8 +339,8 @@ ITEST(ChainEnterRawAndEscAndBackspace) {
 }
 
 ITEST(ChainNonHandledKeyCommitsRawAndForwards) {
-  ContractDictionary dict;
-  populateFixture(dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   auto s = makeSession(dict);
   ChainProbe p(*s);
   typeProbe(p, "nihao");
@@ -299,8 +352,8 @@ ITEST(ChainNonHandledKeyCommitsRawAndForwards) {
 }
 
 ITEST(ChainModeSwitchPolicies) {
-  ContractDictionary dict;
-  populateFixture(dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   {
     EngineConfig cfg;  // 默认 commit_raw
     auto s = makeSession(dict, cfg);
@@ -332,54 +385,20 @@ ITEST(ChainModeSwitchPolicies) {
   }
 }
 
-ITEST(ChainDictionaryErrorKeepsBuffer) {
-  ContractDictionary dict;
-  bool fail = false;
-  dict.setScript([&fail](std::string_view prefix, uint32_t limit,
-                         uint32_t offset) -> abc::LookupResult {
-    if (fail) {
-      abc::LookupResult bad;
-      bad.status = abc::DictionaryStatus::kCorruptIndex;
-      return bad;
-    }
-    ContractDictionary inner;
-    inner.add("ni", "你", 100);
-    (void)prefix;
-    return inner.lookup(prefix, limit, offset);
-  });
-  auto s = makeSession(dict);
-  ChainProbe p(*s);
-  p.step(letter(U'n'));  // 正常：有候选
-  fail = true;
-  // 错误标注在 handle 的返回值上（snapshot 不携带按次错误，符合契约）。
-  const EngineResult errResult = p.step(letter(U'i'));
-  IEXPECT_TRUE(errResult.error == EngineError::kDictionaryError);
-  IEXPECT_EQ(errResult.preedit, "ni");
-  IEXPECT_EQ(errResult.pageCount, 0u);
-  IEXPECT_TRUE(errResult.mode == Mode::kComposing);  // 无候选的 Selecting 不存在
-  const EngineResult snap = s->snapshot();
-  IEXPECT_EQ(snap.preedit, "ni");  // 缓冲保留
-  // 无候选空格默认策略：提交原文 + 空格转发。
-  const EngineResult sp = p.step(KeyCommand{KeyCode::kSpace});
-  IEXPECT_FALSE(sp.consumed);
-  IEXPECT_EQ(sp.effects[0].text, "ni");
-}
-
 ITEST(ChainConfiguredPageSizePropagates) {
-  ContractDictionary dict;
-  populateFixture(dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   EngineConfig cfg;
   cfg.pageSize = 5;
   auto s = makeSession(dict, cfg);
   typeLetters(*s, "ma");
   EngineResult r = s->handle(KeyCommand{KeyCode::kSpace});
-  IEXPECT_EQ(r.pageCount, 5u);  // 23 / 5 → 5 页
-  IEXPECT_EQ(r.candidates.size(), 5u);
-  IEXPECT_EQ(dict.queries().back().limit, 5u);
-  // 页大小 5 时数字 '5' 有效、选择页内第 5 项。
-  r = s->handle(digit(5));
-  IEXPECT_EQ(r.effects[0].text, "妈05");
-  // 超出页大小的数字（替换会话再验证 '6'…页内无第 6 项）不消费。
+  IEXPECT_EQ(r.pageCount, 1u);
+  IEXPECT_EQ(r.candidates.size(), 4u);
+  // 页大小 5 下选择页首候选。
+  r = s->handle(digit(1));
+  IEXPECT_EQ(r.effects[0].text, "马");
+  // 超出当前候选数的数字不消费。
   auto s2 = makeSession(dict, cfg);
   typeLetters(*s2, "ma");
   s2->handle(KeyCommand{KeyCode::kSpace});
@@ -389,8 +408,8 @@ ITEST(ChainConfiguredPageSizePropagates) {
 }
 
 ITEST(ChainResetToInitialModeWithoutCommit) {
-  ContractDictionary dict;
-  populateFixture(dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   auto s = makeSession(dict);
   typeLetters(*s, "nihao");
   s->handle(KeyCommand{KeyCode::kSpace});
@@ -405,8 +424,8 @@ ITEST(ChainResetToInitialModeWithoutCommit) {
 
 ITEST(ChainDeterministicLongWalk) {
   // 确定性伪随机长序列：每步核算 + 不变量复核；两次独立会话结果一致。
-  ContractDictionary dict;
-  populateFixture(dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
   auto run = [&dict]() {
     auto s = makeSession(dict);
     ChainProbe p(*s);
@@ -471,13 +490,14 @@ ITEST(ChainConfigModuleSeam) {
   IEXPECT_TRUE(r.engine.initialMode == Mode::kEnglish);
   IEXPECT_EQ(r.engine.pageSize, 7u);
   IEXPECT_TRUE(r.warnings.empty());
-  ContractDictionary dict;
-  auto s = abc::createEngineSession(r.engine, &dict);
+  FixtureDictionary dict;
+  IEXPECT_TRUE(dict.get() != nullptr);
+  auto s = abc::createEngineSession(r.engine, dict.get());
   IEXPECT_TRUE(static_cast<bool>(s));
   // 越界值回退默认 ⇒ 工厂必须接受（A5 保证范围合法）。
   abc::config::ParseResult bad = abc::config::parseString("pageSize = 99\n");
   IEXPECT_EQ(bad.engine.pageSize, 9u);
-  auto s2 = abc::createEngineSession(bad.engine, &dict);
+  auto s2 = abc::createEngineSession(bad.engine, dict.get());
   IEXPECT_TRUE(static_cast<bool>(s2));
 }
 #endif

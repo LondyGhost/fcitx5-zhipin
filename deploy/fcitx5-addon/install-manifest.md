@@ -1,13 +1,13 @@
 # abc fcitx5 addon 安装路径清单
 
-本清单是 A4 允许写入的全部路径。路径相对于安装前缀；前缀只能是用户目录
+本清单是 A4 允许写入的全部路径。路径相对于用户 HOME；前缀只能是用户目录
 （默认 `$HOME/.local`）或项目隔离前缀。`install-user.sh` 拒绝 `/`、`/usr`、`/opt`。
 
 | 相对路径 | 来源 | 作用 |
 |---|---|---|
-| `lib/fcitx5/abc.so` | `abc_fcitx5_addon` | addon 共享库。`Library=libabc`，fcitx5 加 `lib` 前缀和 `.so` |
-| `share/fcitx5/addon/abc.conf` | `abc-addon.conf` | addon 注册描述 |
-| `share/fcitx5/inputmethod/abc.conf` | `abc-im.conf` | 输入法条目 |
+| `.local/lib/fcitx5/libabc.so` | `abc_fcitx5_addon` | addon 共享库；与 `Library=libabc` 匹配。旧版非清单登记名 `abc.so` 不由新清单自动清理 |
+| `.local/share/fcitx5/addon/abc.conf` | `abc-addon.conf` | addon 注册描述 |
+| `.local/share/fcitx5/inputmethod/abc.conf` | `abc-im.conf` | 输入法条目 |
 | `.abc-im/manifest.list` | 安装脚本生成 | 卸载依据，只含上面的相对路径 |
 | `.abc-im/backup/<时间戳>/` | 安装脚本生成 | 覆盖前的原文件，卸载时恢复 |
 
@@ -19,6 +19,10 @@
 
 - addon 描述目录：`$HOME/.local/share/fcitx5` 已在默认搜索路径中。
 - addon **库**目录默认只有 `/usr/lib/fcitx5`，`userDirectory(Addon)` 为空。
+- `FCITX_ADDON_DIRS` 只改变共享库目录；目标机 5.1.23 上 `StandardPathsType::PkgData`
+  默认同时包含 `$HOME/.local/share/fcitx5`、`/usr/local/share/fcitx5`、`/usr/share/fcitx5`。
+  最终安装必须使用真实用户 HOME 前缀，不能把隔离测试 HOME 当作最终注册路径；
+  `FCITX_DATA_DIRS` 不改变该版本的 `StandardPathsType::PkgData`。
 
 因此用户级库要被加载，运行 fcitx5 的环境必须带：
 
@@ -39,4 +43,4 @@ fcitx5-remote -n abc   # 切到本引擎；不可用时先 fcitx5-diagnose
 ```
 
 确认 `fcitx5-diagnose` 的 addon 列表含 `abc`，且加载路径是
-`$HOME/.local/lib/fcitx5/abc.so`。Wayland 端到端由 A6 执行。
+`$HOME/.local/lib/fcitx5/libabc.so`，并在 Fcitx5 日志确认 `Loaded addon abc`；用户级配置指定的索引应有 `abc dictionary loaded` 成功日志。Wayland 端到端由 A6 执行。

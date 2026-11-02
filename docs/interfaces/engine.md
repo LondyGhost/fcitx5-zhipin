@@ -64,8 +64,10 @@ fcitx5 键事件到 `KeyCommand` 的唯一合法映射（键名按目标机 fcit
 | `Escape` | `kEscape` |
 | `Prior` / `KP_Prior`（PageUp） | `kPageUp` |
 | `Next` / `KP_Next`（PageDown） | `kPageDown` |
+| `Left` / `Right`（方向键） | `kLeft` / `kRight`：选择态移动高亮，不提交 |
+| `Up` / `Down`（方向键） | `kUp` / `kDown`：选择态翻页，等价 `kPageUp` / `kPageDown` |
 | 配置的中英文切换热键（`config.md` 的 `modeSwitchKey`） | `kModeSwitch` |
-| 其余全部（方向键、Home/End、Tab、组合键、带 Ctrl/Alt 的键等） | `kUnknown` |
+| 其余全部（Home/End、Tab、组合键、带 Ctrl/Alt 的键等） | `kUnknown` |
 
 规则：
 
@@ -212,10 +214,12 @@ struct EngineResult {
 | `kBackspace` | 消费；删除 `B` 末字符；`B` 空 → `kChineseEmpty`；否则重新 lookup，`page = 0`，`mode = kComposing`，`highlight = -1`（本行为是对方案表格空缺处的冻结补充） |
 | `kEnter` | 消费；提交**原文缓冲**（不是候选）；组合清空；`mode = kChineseEmpty` |
 | `kEscape` | 消费；清空组合，不提交；`mode = kChineseEmpty` |
-| `kPageUp`，`page > 0` | 消费；`page -= 1`；`highlight = 0`；候选页刷新 |
-| `kPageUp`，`page == 0` | 消费；无变化（页边界） |
-| `kPageDown`，`page + 1 < pageCount` | 消费；`page += 1`；`highlight = 0`；候选页刷新 |
-| `kPageDown`，已到末页 | 消费；无变化（页边界） |
+| `kPageUp` / `kUp`，`page > 0` | 消费；`page -= 1`；`highlight = 0`；候选页刷新 |
+| `kPageUp` / `kUp`，`page == 0` | 消费；无变化（页边界） |
+| `kPageDown` / `kDown`，`page + 1 < pageCount` | 消费；`page += 1`；`highlight = 0`；候选页刷新 |
+| `kPageDown` / `kDown`，已到末页 | 消费；无变化（页边界） |
+| `kLeft` | 消费；`highlight = max(0, highlight - 1)`；**不提交**、不退出选择态 |
+| `kRight` | 消费；`highlight = min(页内末项, highlight + 1)`；**不提交**、不退出选择态 |
 | `kPunctuation` / `kUnknown` | 未处理键策略（4.3）：提交原文后转发 |
 | `kModeSwitch` | 消费；按 `modeSwitchCompositionPolicy` 处理 `B`；`mode = kEnglish` |
 

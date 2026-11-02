@@ -28,6 +28,7 @@ abc::addon::KeyInput key(uint32_t sym, uint32_t states = 0, bool release = false
 
 using abc::KeyCode;
 using abc::addon::ModeSwitchKey;
+using abc::addon::isDispatchableKey;
 using abc::addon::toKeyCommand;
 namespace keysym = abc::addon::keysym;
 namespace state = abc::addon::state;
@@ -112,8 +113,14 @@ void testPunctuationAndUnknown() {
   auto tab = toKeyCommand(key(0xff09), ModeSwitchKey::kShift);
   expect(tab.code == KeyCode::kUnknown, "Tab -> unknown");
 
-  auto left = toKeyCommand(key(0xff51), ModeSwitchKey::kShift);
-  expect(left.code == KeyCode::kUnknown, "Left -> unknown");
+  auto left = toKeyCommand(key(keysym::kLeft), ModeSwitchKey::kShift);
+  expect(left.code == KeyCode::kLeft, "Left -> kLeft");
+  auto right = toKeyCommand(key(keysym::kRight), ModeSwitchKey::kShift);
+  expect(right.code == KeyCode::kRight, "Right -> kRight");
+  auto up = toKeyCommand(key(keysym::kUp), ModeSwitchKey::kShift);
+  expect(up.code == KeyCode::kUp, "Up -> kUp");
+  auto down = toKeyCommand(key(keysym::kDown), ModeSwitchKey::kShift);
+  expect(down.code == KeyCode::kDown, "Down -> kDown");
 
   auto release = toKeyCommand(key(keysym::kLowerA, 0, true),
                               ModeSwitchKey::kShift);
@@ -133,7 +140,12 @@ void testModeSwitch() {
   auto matched = toKeyCommand(key(keysym::kShiftL, state::kShift, true, true),
                               ModeSwitchKey::kShift);
   expect(matched.code == KeyCode::kModeSwitch,
-         "Shift release matching the hotkey -> mode switch");
+         "left Shift release matching the hotkey -> mode switch");
+
+  auto rightMatched = toKeyCommand(
+      key(keysym::kShiftR, state::kShift, true, true), ModeSwitchKey::kShift);
+  expect(rightMatched.code == KeyCode::kModeSwitch,
+         "right Shift release matching the default hotkey -> mode switch");
 
   auto other = toKeyCommand(key(keysym::kShiftL, state::kShift, true, false),
                             ModeSwitchKey::kShift);
@@ -149,6 +161,25 @@ void testModeSwitch() {
          "no configured hotkey means no mode switch");
 }
 
+void testReleaseDispatch() {
+  // 释放事件不得进入核心状态机：核心把 kUnknown 当未处理键，会提交并清空缓冲。
+  const auto letterPress = toKeyCommand(key(keysym::kLowerA), ModeSwitchKey::kShift);
+  expect(isDispatchableKey(letterPress, false), "letter press is dispatched");
+
+  const auto letterRelease =
+      toKeyCommand(key(keysym::kLowerA, 0, true, false), ModeSwitchKey::kShift);
+  expect(letterRelease.code == KeyCode::kUnknown, "letter release maps to unknown");
+  expect(!isDispatchableKey(letterRelease, true),
+         "letter release is NOT dispatched to the core");
+
+  const auto modeSwitch =
+      toKeyCommand(key(keysym::kShiftL, state::kShift, true, true),
+                   ModeSwitchKey::kShift);
+  expect(modeSwitch.code == KeyCode::kModeSwitch, "hotkey release -> mode switch");
+  expect(isDispatchableKey(modeSwitch, true),
+         "mode switch release is still dispatched");
+}
+
 }  // namespace
 
 int main() {
@@ -157,6 +188,7 @@ int main() {
   testNamedKeys();
   testPunctuationAndUnknown();
   testModeSwitch();
+  testReleaseDispatch();
   if (g_failed != 0) {
     std::cerr << g_failed << " keyconv assertion(s) failed\n";
     return EXIT_FAILURE;

@@ -87,6 +87,9 @@ class AbcEngine : public fcitx::InputMethodEngine {
   abc::Dictionary* dictionary() const { return dictionary_.get(); }
   ModeSwitchKey modeSwitchKey() const { return modeSwitchKey_; }
   bool preeditInClient() const { return preeditInClient_; }
+  // B 方案：librime 后端是否就绪。就绪时每个上下文创建 Rime 会话，
+  // 不再加载自研索引（省 ~100MB RSS）。
+  bool useRime() const { return useRime_; }
 
  private:
   AbcState* stateFor(fcitx::InputContext* ic);
@@ -98,6 +101,7 @@ class AbcEngine : public fcitx::InputMethodEngine {
   abc::EngineConfig engineConfig_;
   ModeSwitchKey modeSwitchKey_ = ModeSwitchKey::kShift;
   bool preeditInClient_ = true;
+  bool useRime_ = false;
 };
 
 class AbcEngineFactory : public fcitx::AddonFactory {

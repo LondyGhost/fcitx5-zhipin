@@ -22,6 +22,10 @@ enum class KeyCode {
   kPageUp = 8,
   kPageDown = 9,
   kModeSwitch = 10,  // 配置的中英文切换热键，由适配层识别后发出
+  kLeft = 11,        // 方向键左：选择态内移动高亮（不提交）
+  kRight = 12,       // 方向键右：选择态内移动高亮（不提交）
+  kUp = 13,          // 方向键上：选择态翻页（等价 kPageUp）
+  kDown = 14,        // 方向键下：选择态翻页（等价 kPageDown）
 };
 
 struct KeyCommand {

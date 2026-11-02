@@ -66,7 +66,7 @@ make_staging() {  # $1 = staging 目录；标准布局 fixture（含空格路径
 make_addon_prefix() {  # $1 = 模拟 cmake --install 产出的前缀树（A4 布局）
   local d=$1
   mkdir -p -- "$d/lib/fcitx5" "$d/share/fcitx5/addon" "$d/share/fcitx5/inputmethod"
-  printf 'so\n'     > "$d/lib/fcitx5/abc.so"
+  printf 'so\n'     > "$d/lib/fcitx5/libabc.so"
   printf 'addon\n'  > "$d/share/fcitx5/addon/abc.conf"
   printf 'im\n'     > "$d/share/fcitx5/inputmethod/abc.conf"
 }
@@ -347,7 +347,7 @@ t18_out="$t18_root/out tree"
 make_addon_prefix "$t18_from"
 out="$(bash "$STAGING_SH" --from "$t18_from" --out "$t18_out" 2>&1)"; rc=$?
 assert_eq "$rc" "0" "18.1 组装退出码 0（路径含空格）"
-assert_file "$t18_out/.local/lib/fcitx5/abc.so" "18.2 addon 映射到 .local/lib/fcitx5"
+assert_file "$t18_out/.local/lib/fcitx5/libabc.so" "18.2 addon 映射到 .local/lib/fcitx5"
 assert_file "$t18_out/.local/share/fcitx5/addon/abc.conf" "18.3 addon 描述已映射"
 assert_file "$t18_out/.local/share/fcitx5/inputmethod/abc.conf" "18.4 输入法条目已映射"
 assert_file "$t18_out/.config/abc/config.ini" "18.5 配置模板已放入 staging"
@@ -360,7 +360,7 @@ assert_eq "$(cat "$t18_out/.config/abc/config.ini")" "$(cat "$CONFIG_TEMPLATE")"
 t18_prefix="$SBOX/user18"
 out="$(bash "$INSTALL" --staging "$t18_out" --prefix "$t18_prefix" 2>&1)"; rc=$?
 assert_eq "$rc" "0" "18.8 组装产物可安装（退出码 0）"
-assert_file "$t18_prefix/.local/lib/fcitx5/abc.so" "18.9 安装后 addon 位于 \$HOME/.local/lib/fcitx5"
+assert_file "$t18_prefix/.local/lib/fcitx5/libabc.so" "18.9 安装后 addon 位于 \$HOME/.local/lib/fcitx5"
 assert_file "$t18_prefix/.local/share/fcitx5/addon/abc.conf" "18.10 安装后 addon 描述就位"
 assert_file "$t18_prefix/.config/abc/config.ini" "18.11 安装后配置位于 \$HOME/.config/abc"
 
@@ -380,7 +380,7 @@ assert_eq "$rc" "2" "18.15 空前缀树组装失败（退出码 2）"
 assert_contains "$out" "为空目录" "18.16 指出前缀树为空"
 t18_partial="$t18_root/partial prefix"
 mkdir -p -- "$t18_partial/lib/fcitx5"
-printf 'so\n' > "$t18_partial/lib/fcitx5/abc.so"
+printf 'so\n' > "$t18_partial/lib/fcitx5/libabc.so"
 out="$(bash "$STAGING_SH" --from "$t18_partial" --out "$t18_root/out3" 2>&1)"; rc=$?
 assert_eq "$rc" "2" "18.17 缺 addon 描述时组装失败（退出码 2）"
 assert_contains "$out" "A4 产物缺失" "18.18 指出缺失的 A4 产物"
@@ -551,7 +551,7 @@ t25_prefix="$SBOX/user25"
 t25_stage="$SBOX/stage25"
 make_staging "$t25_stage"
 mkdir -p -- "$t25_prefix/.abc-im"
-printf '.local/lib/fcitx5/abc.so\n' > "$t25_prefix/.abc-im/manifest.list"
+printf '.local/lib/fcitx5/libabc.so\n' > "$t25_prefix/.abc-im/manifest.list"
 out="$(bash "$INSTALL" --staging "$t25_stage" --prefix "$t25_prefix" 2>&1)"; rc=$?
 assert_eq "$rc" "1" "25.1 检测到 A4 清单时拒绝安装（退出码 1）"
 assert_contains "$out" "A4 参考脚本" "25.2 指出清单来源与不兼容"
@@ -571,9 +571,9 @@ keep_before="$(sha_of "$t25b_root/keep/keepme.txt")"
 out="$(bash "$INSTALL" --staging "$t25b_stage" --prefix "$t25b_prefix" 2>&1)"; rc=$?
 assert_eq "$rc" "0" "25.6 隔离前缀安装退出码 0"
 assert_eq "$(sha_of "$t25b_root/keep/keepme.txt")" "$keep_before" "25.7 前缀外文件未被改动"
-assert_eq "$(find "$t25b_root" -name abc.so -not -path "$t25b_prefix/*" 2>/dev/null | wc -l | tr -d ' ')" "0" \
+assert_eq "$(find "$t25b_root" -name libabc.so -not -path "$t25b_prefix/*" 2>/dev/null | wc -l | tr -d ' ')" "0" \
   "25.8 前缀外无 addon 文件"
-assert_no_file "/usr/lib/fcitx5/abc.so" "25.9 /usr 无本项目 addon 库"
+assert_no_file "/usr/lib/fcitx5/libabc.so" "25.9 /usr 无本项目 addon 库"
 assert_no_file "/usr/share/fcitx5/addon/abc.conf" "25.10 /usr 无本项目 addon 描述"
 assert_no_file "/opt/abc" "25.11 /opt 无本项目目录"
 
