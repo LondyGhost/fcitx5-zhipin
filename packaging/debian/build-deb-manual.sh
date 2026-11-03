@@ -48,8 +48,7 @@ cp "$WORK/src/README.md" "$WORK/pkg/usr/share/doc/$NAME/"
 cp "$WORK/src/LICENSE" "$WORK/pkg/usr/share/doc/$NAME/"
 
 cd "$WORK"
-tar czf data.tar.gz -C pkg usr
-tar czf control.tar.gz -C pkg DEBIAN
-echo "2.0" > debian-binary
-fakeroot -- bash -c "ar rc '$OUT/${NAME}_${VERSION}-1_${ARCH}.deb' debian-binary control.tar.gz data.tar.gz"
+# dpkg-deb 要求 control 在包根的 DEBIAN/；用 --root-owner-group 统一属主。
+dpkg-deb --root-owner-group --build "$WORK/pkg" \
+  "$OUT/${NAME}_${VERSION}-1_${ARCH}.deb"
 echo "built: $OUT/${NAME}_${VERSION}-1_${ARCH}.deb"
