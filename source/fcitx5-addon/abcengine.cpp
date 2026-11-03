@@ -210,12 +210,17 @@ void AbcState::redraw() {
 void AbcState::apply(const abc::EngineResult& result) {
   // 4.4：先按 effects 顺序执行副作用，再按快照同步 UI。
   // 规则与 ui_mapping.cpp 共用，测试覆盖的就是这里执行的序列。
-  for (const UiAction& action : mapResult(result)) {
+  //
+  // 上屏（kCommitText）必须放在「清 UI + updateUserInterface」之后：
+  // commitString 会让 fcitx5 立刻重绘输入窗，若此时候选列表还没清，
+  // 旧候选会多显示一帧——表现为选词后候选框留下残影再消失。
+  const std::vector<UiAction> actions = mapResult(result);
+  std::vector<std::string> commits;
+  for (const UiAction& action : actions) {
     switch (action.kind) {
       case UiAction::Kind::kCommitText:
-        if (!action.text.empty()) {
-          ic_->commitString(action.text);
-        }
+        // 延后到 UI 收起之后再上屏。
+        commits.push_back(action.text);
         break;
       case UiAction::Kind::kClearComposition:
         clearUi();
@@ -233,6 +238,11 @@ void AbcState::apply(const abc::EngineResult& result) {
   }
   ic_->updatePreedit();
   ic_->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
+  for (const std::string& text : commits) {
+    if (!text.empty()) {
+      ic_->commitString(text);
+    }
+  }
 }
 
 void AbcState::setPreedit(const std::string& preedit) {
