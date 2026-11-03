@@ -45,13 +45,11 @@ DESTDIR=%{buildroot} cmake --install build
 %files
 %license LICENSE
 %doc README.md
-%dir %{_docdir}/fcitx5-abc
 %{_libdir}/fcitx5/libabc.so
 %{_datadir}/fcitx5/addon/abc.conf
 %{_datadir}/fcitx5/inputmethod/abc.conf
 %{_datadir}/rime-data/abc.schema.yaml
 %{_datadir}/fcitx5/themes/abc/theme.conf
-%{_docdir}/fcitx5-abc/README.md
 
 %changelog
 * Mon Nov 02 2026 abc-im maintainers <dev@example.com> - 1.0.0-1
