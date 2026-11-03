@@ -52,6 +52,7 @@ DESTDIR=%{buildroot} cmake --install build
 %{_datadir}/fcitx5/inputmethod/abc.conf
 %{_datadir}/rime-data/abc.schema.yaml
 %{_datadir}/fcitx5/themes/abc/theme.conf
+%{_datadir}/icons/hicolor/scalable/apps/fcitx5-zhipin.svg
 
 %changelog
 * Mon Nov 02 2026 abc-im maintainers <dev@example.com> - 1.0.0-1
