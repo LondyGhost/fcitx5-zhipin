@@ -15,7 +15,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 # 项目版本取 project( ... VERSION x.y.z )；cmake_minimum_required 的 3.16 必须避开。
 VERSION=$(sed -n 's/^\s*VERSION \([0-9][0-9.]*\).*/\1/p' "$ROOT/CMakeLists.txt" | head -1)
 [ -n "$VERSION" ] || { echo "$PROG: cannot read project version" >&2; exit 1; }
-NAME="fcitx5-abc"
+NAME="fcitx5-zhipin"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
@@ -66,7 +66,7 @@ case "${1:-}" in
     cp "$WORK/$NAME-$VERSION.tar.gz" "$RPMBUILD/SOURCES/"
     rpmbuild -ba --define "_topdir $RPMBUILD" \
       --define "_sourcedir $RPMBUILD/SOURCES" \
-      "$ROOT/packaging/rpm/fcitx5-abc.spec"
+      "$ROOT/packaging/rpm/fcitx5-zhipin.spec"
     find "$RPMBUILD/RPMS" -name "*.rpm" -exec cp {} . \;
     ;;
   *)

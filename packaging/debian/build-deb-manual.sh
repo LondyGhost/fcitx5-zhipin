@@ -7,7 +7,7 @@ set -eu
 
 TARBALL="$1"
 OUT="${2:-.}"
-NAME="fcitx5-abc"
+NAME="fcitx5-zhipin"
 VERSION="1.0.0"
 ARCH=$(uname -m)
 case "$ARCH" in

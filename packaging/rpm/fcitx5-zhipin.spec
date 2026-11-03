@@ -1,13 +1,13 @@
-Name:           fcitx5-abc
+Name:           fcitx5-zhipin
 Version:        1.0.0
 Release:        1%{?dist}
 Summary:        Intelligent ABC style input method engine for fcitx5 (librime backend)
 
 License:        GPL-3.0-or-later
-URL:            https://github.com/REPLACE-ME/fcitx5-abc
+URL:            https://github.com/REPLACE-ME/fcitx5-zhipin
 # Local build: point Source0 at the generated tarball, e.g.
-#   cd .. && tar czf fcitx5-abc-1.0.0.tar.gz --transform 's,^,fcitx5-abc-1.0.0/,' .
-Source0:        fcitx5-abc-%{version}.tar.gz
+#   cd .. && tar czf fcitx5-zhipin-1.0.0.tar.gz --transform 's,^,fcitx5-zhipin-1.0.0/,' .
+Source0:        fcitx5-zhipin-%{version}.tar.gz
 
 BuildRequires:  cmake
 BuildRequires:  ninja-build
@@ -29,14 +29,14 @@ commit the highlighted choice, Enter/Shift+letter for raw letters, and
 picking are supported.
 
 %prep
-%setup -q -n fcitx5-abc-%{version}
+%setup -q -n fcitx5-zhipin-%{version}
 
 %build
 cmake -S . -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr \
   -DCMAKE_INSTALL_LIBDIR=lib \
-  -DCMAKE_INSTALL_DOCDIR=%{_datadir}/doc/fcitx5-abc
+  -DCMAKE_INSTALL_DOCDIR=%{_datadir}/doc/fcitx5-zhipin
 cmake --build build
 
 %install

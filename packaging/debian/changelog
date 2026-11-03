@@ -1,4 +1,4 @@
-fcitx5-abc (1.0.0-1) unstable; urgency=medium
+fcitx5-zhipin (1.0.0-1) unstable; urgency=medium
 
   * Initial release: Intelligent ABC style input method engine for fcitx5
     with an embedded librime backend.

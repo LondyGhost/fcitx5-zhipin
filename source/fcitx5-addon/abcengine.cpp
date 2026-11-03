@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include <fcitx-config/iniparser.h>
 #include <fcitx-utils/key.h>
 #include <fcitx-utils/keysym.h>
 #include <fcitx/candidatelist.h>
@@ -56,6 +57,26 @@ std::string userConfigPath() {
     return std::string(home) + "/.config/abc/config.ini";
   }
   return "abc/config.ini";
+}
+
+// fcitx5 标准 addon 配置路径：XDG_CONFIG_HOME/fcitx5/conf/abc.conf。
+std::string fcitxConfigPath() {
+  const char* xdg = std::getenv("XDG_CONFIG_HOME");
+  if (xdg != nullptr && xdg[0] != '\0') {
+    return std::string(xdg) + "/fcitx5/conf/abc.conf";
+  }
+  const char* home = std::getenv("HOME");
+  if (home != nullptr && home[0] != '\0') {
+    return std::string(home) + "/.config/fcitx5/conf/abc.conf";
+  }
+  return "abc.conf";
+}
+
+bool fileExists(const std::string& path) {
+  FILE* f = std::fopen(path.c_str(), "r");
+  if (f == nullptr) return false;
+  std::fclose(f);
+  return true;
 }
 #endif
 
@@ -134,6 +155,11 @@ bool isConfiguredModifierRelease(const fcitx::Key& key,
 
 AbcState::AbcState(AbcEngine* engine, fcitx::InputContext* ic)
     : engine_(engine), ic_(ic) {
+  createSession();
+}
+
+void AbcState::createSession() {
+  session_.reset();
 #if ABC_ADDON_HAS_RIME
   // B 方案优先：每个上下文一个 Rime 会话。
   if (engine_->useRime()) {
@@ -145,6 +171,15 @@ AbcState::AbcState(AbcEngine* engine, fcitx::InputContext* ic)
     session_ = abc::createEngineSession(engine_->engineConfig(),
                                         engine_->dictionary());
   }
+}
+
+void AbcState::rebuildSession() {
+  // 配置变更：EngineConfig 是会话构造参数，只能重建。
+  // 重建不提交未完成的组合（与 reset 语义一致）。
+  clearUi();
+  createSession();
+  ic_->updatePreedit();
+  ic_->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
 }
 
 AbcState::~AbcState() {
@@ -268,11 +303,13 @@ void AbcEngine::loadUserConfig() {
   }
 #endif
 #if ABC_ADDON_HAS_CONFIG
+  // 首次运行：把旧的 ~/.config/abc/config.ini 迁移到 fcitx5 的配置体系。
+  importLegacyConfigIfNeeded();
+  applyFcitxConfig();
+
+  // 自研索引路径仍从旧配置读取（迁移后同时存在于 fcitx5 配置里）。
   const abc::config::ParseResult parsed =
       abc::config::parseFile(userConfigPath());
-  engineConfig_ = parsed.engine;
-  preeditInClient_ = parsed.addon.preeditInClient;
-  modeSwitchKey_ = parseModeSwitchKey(parsed.addon.modeSwitchKey.c_str());
   for (const std::string& warning : parsed.warnings) {
     FCITX_WARN() << "abc config: " << warning;
   }
@@ -290,6 +327,109 @@ void AbcEngine::loadUserConfig() {
   }
 #else
   FCITX_ERROR() << "abc addon built without required config module";
+#endif
+}
+
+void AbcEngine::importLegacyConfigIfNeeded() {
+#if ABC_ADDON_HAS_CONFIG
+  // fcitx5 配置已存在（用户改过设置）：以它为准，不再迁移。
+  if (fileExists(fcitxConfigPath())) {
+    return;
+  }
+  if (!fileExists(userConfigPath())) {
+    return;
+  }
+  const abc::config::ParseResult parsed =
+      abc::config::parseFile(userConfigPath());
+  config_.pageSize.setValue(static_cast<int>(parsed.engine.pageSize));
+  config_.maxBufferChars.setValue(static_cast<int>(parsed.engine.maxBufferChars));
+  config_.initialMode.setValue(
+      (parsed.engine.initialMode == abc::Mode::kEnglish)
+          ? AbcInitialMode::English
+          : AbcInitialMode::Chinese);
+  config_.spaceNoCandidate.setValue(
+      (parsed.engine.spaceNoCandidatePolicy ==
+       abc::SpaceNoCandidatePolicy::kKeepBufferAndForward)
+          ? AbcSpacePolicy::KeepBuffer
+          : AbcSpacePolicy::CommitRaw);
+  config_.modeSwitchPolicy.setValue(
+      (parsed.engine.modeSwitchCompositionPolicy ==
+       abc::ModeSwitchCompositionPolicy::kClearComposition)
+          ? AbcSwitchPolicy::Clear
+          : AbcSwitchPolicy::CommitRaw);
+  config_.indexPath.setValue(parsed.addon.indexPath);
+  config_.preeditInClient.setValue(parsed.addon.preeditInClient);
+  if (!parsed.addon.modeSwitchKey.empty()) {
+    // fcitx::Key 只认 "Shift_L" 这类 keysym 名，旧配置里的 "Shift" 需规范化。
+    std::string keyName = parsed.addon.modeSwitchKey;
+    if (keyName == "Shift") {
+      keyName = "Shift_L";
+    } else if (keyName == "Control" || keyName == "Ctrl") {
+      keyName = "Control_L";
+    } else if (keyName == "Alt") {
+      keyName = "Alt_L";
+    } else if (keyName == "Super") {
+      keyName = "Super_L";
+    }
+    fcitx::Key key(keyName);
+    config_.modeSwitchKey.setValue(key.isValid() ? key : fcitx::Key("Shift_L"));
+  }
+  fcitx::safeSaveAsIni(config_, fcitxConfigPath());
+  FCITX_INFO() << "abc: migrated legacy config.ini to " << fcitxConfigPath();
+#endif
+}
+
+void AbcEngine::applyFcitxConfig() {
+  const int pageSize = *config_.pageSize;
+  engineConfig_.pageSize =
+      static_cast<uint32_t>(pageSize > 0 ? pageSize : 9);
+  const int maxChars = *config_.maxBufferChars;
+  engineConfig_.maxBufferChars =
+      static_cast<uint32_t>(maxChars > 0 ? maxChars : 64);
+  engineConfig_.initialMode = (*config_.initialMode == AbcInitialMode::Chinese)
+                                  ? abc::Mode::kChineseEmpty
+                                  : abc::Mode::kEnglish;
+  engineConfig_.spaceNoCandidatePolicy =
+      (*config_.spaceNoCandidate == AbcSpacePolicy::CommitRaw)
+          ? abc::SpaceNoCandidatePolicy::kCommitRawAndForward
+          : abc::SpaceNoCandidatePolicy::kKeepBufferAndForward;
+  engineConfig_.modeSwitchCompositionPolicy =
+      (*config_.modeSwitchPolicy == AbcSwitchPolicy::CommitRaw)
+          ? abc::ModeSwitchCompositionPolicy::kCommitRaw
+          : abc::ModeSwitchCompositionPolicy::kClearComposition;
+  preeditInClient_ = *config_.preeditInClient;
+  const fcitx::Key& key = *config_.modeSwitchKey;
+  if (key.isValid()) {
+    modeSwitchKey_ = parseModeSwitchKey(key.toString().c_str());
+  }
+}
+
+void AbcEngine::setConfig(const fcitx::RawConfig& config) {
+  // fcitx5 启动时会先读取 ~/.config/fcitx5/conf/abc.conf，再调用本函数。
+  // 首次运行时该文件不存在，raw 为空；此时保留 importLegacyConfigIfNeeded()
+  // 已从旧 config.ini 迁移进来的值，避免被默认值覆盖。
+  const bool hasAny =
+      config.subItemsSize() > 0 || !config.value().empty();
+  if (hasAny) {
+    config_.load(config, true);
+  }
+  applyFcitxConfig();
+  configLoaded_ = true;
+  // 配置项（页大小、初始状态、切换键等）是会话构造参数，需重建。
+  instance_->inputContextManager().foreach ([this](fcitx::InputContext* ic) {
+    if (AbcState* state = stateFor(ic)) {
+      state->rebuildSession();
+    }
+    return true;
+  });
+  FCITX_INFO() << "abc: configuration applied (pageSize="
+               << engineConfig_.pageSize << ")";
+}
+
+void AbcEngine::save() {
+#if ABC_ADDON_HAS_CONFIG
+  // fcitx5 保存 addon 配置时调用；显式落盘，避免仅存于内存。
+  fcitx::safeSaveAsIni(config_, fcitxConfigPath());
 #endif
 }
 

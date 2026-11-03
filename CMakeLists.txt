@@ -1,11 +1,11 @@
-# Linux 智能 ABC 输入法引擎 — 根构建清单（A0 维护）
+# 智拼（ZhiPin）输入法引擎 — 根构建清单（A0 维护）
 # 契约：docs/interfaces/build.md（模块注册规则、依赖方向、目标命名）。
 # 模块在自己的目录提供 CMakeLists.txt 即自动纳入；禁止并行任务编辑本文件。
 cmake_minimum_required(VERSION 3.16)
 
 project(abc_engine
   VERSION 1.0.0
-  DESCRIPTION "Linux 智能 ABC：独立 fcitx5 输入法引擎（纯核心 + addon 适配）"
+  DESCRIPTION "智拼（ZhiPin）：fcitx5 输入法引擎（经典 ABC 字母输入风格）"
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)

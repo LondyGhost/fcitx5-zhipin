@@ -1,4 +1,4 @@
-Source: fcitx5-abc
+Source: fcitx5-zhipin
 Section: utils
 Priority: optional
 Maintainer: abc-im maintainers <dev@example.com>
@@ -11,10 +11,10 @@ Build-Depends:
   librime-dev,
   rime-data
 Standards-Version: 4.6.2
-Homepage: https://github.com/REPLACE-ME/fcitx5-abc
+Homepage: https://github.com/REPLACE-ME/fcitx5-zhipin
 Rules-Requires-Root: no
 
-Package: fcitx5-abc
+Package: fcitx5-zhipin
 Architecture: any
 Depends:
   ${shlibs:Depends},

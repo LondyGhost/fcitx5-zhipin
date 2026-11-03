@@ -24,6 +24,7 @@
 #include <fcitx/instance.h>
 
 #include "abc/engine.h"
+#include "abc_fcitx_config.h"
 #include "keyconv.h"
 
 namespace abc {
@@ -52,10 +53,13 @@ class AbcState : public fcitx::InputContextProperty {
   void reset();
   // 无按键重绘（activate 时恢复显示）。
   void redraw();
+  // 配置变更后重建会话（EngineConfig 是会话构造参数，不可原地修改）。
+  void rebuildSession();
 
   abc::EngineSession* session() const { return session_.get(); }
 
  private:
+  void createSession();
   void setPreedit(const std::string& preedit);
   void setCandidates(const std::vector<std::string>& candidates,
                      int32_t highlight);
@@ -83,6 +87,12 @@ class AbcEngine : public fcitx::InputMethodEngine {
   void reset(const fcitx::InputMethodEntry& entry,
              fcitx::InputContextEvent& event) override;
 
+  // fcitx5 配置界面：返回 Configuration 后，fcitx5-configtool 会据此自动
+  // 生成「附加组件 → 智能ABC → 配置」页面（abc.conf 需 Configurable=True）。
+  const fcitx::Configuration* getConfig() const override { return &config_; }
+  void setConfig(const fcitx::RawConfig& config) override;
+  void save() override;
+
   const abc::EngineConfig& engineConfig() const { return engineConfig_; }
   abc::Dictionary* dictionary() const { return dictionary_.get(); }
   ModeSwitchKey modeSwitchKey() const { return modeSwitchKey_; }
@@ -94,11 +104,17 @@ class AbcEngine : public fcitx::InputMethodEngine {
  private:
   AbcState* stateFor(fcitx::InputContext* ic);
   void loadUserConfig();
+  // 把 fcitx5 配置项转换到引擎运行配置，并重建所有上下文的会话。
+  void applyFcitxConfig();
+  // 首次启动时从旧的 ~/.config/abc/config.ini 迁移配置。
+  void importLegacyConfigIfNeeded();
 
   fcitx::Instance* instance_;
   fcitx::FactoryFor<AbcState> factory_;
   std::unique_ptr<abc::Dictionary> dictionary_;
   abc::EngineConfig engineConfig_;
+  AbcFcitxConfig config_;
+  bool configLoaded_ = false;
   ModeSwitchKey modeSwitchKey_ = ModeSwitchKey::kShift;
   bool preeditInClient_ = true;
   bool useRime_ = false;

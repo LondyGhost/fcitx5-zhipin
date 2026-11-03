@@ -75,6 +75,10 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/abc-im.conf"
   DESTINATION "${CMAKE_INSTALL_DATADIR}/fcitx5/inputmethod"
   RENAME "abc.conf")
 
+# 托盘/状态栏图标（hicolor 主题，fcitx5 按 Icon=fcitx5-zhipin 查找）。
+install(FILES "${PROJECT_SOURCE_DIR}/packaging/icons/fcitx5-zhipin.svg"
+  DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps")
+
 # Rime schema 与 classicui 主题（B 方案运行数据）。
 # schema 放 rime-data 共享目录（与 addon 的 sharedDataDir=/usr/share/rime-data 对应）；
 # 用户目录同名文件可覆盖系统版。文件在仓库顶层 packaging/，用 PROJECT_SOURCE_DIR 定位。

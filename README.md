@@ -1,25 +1,33 @@
-# fcitx5-abc — Linux 智能 ABC 输入法
+# 智拼（ZhiPin）— fcitx5 输入法引擎
 
-一个 **fcitx5 输入法引擎**，在 Linux 上复刻 Windows 智能 ABC 的输入手感。
+一个 **fcitx5 原生输入法引擎**，在 Linux 上复刻经典 ABC 字母输入风格的手感。
 基于内嵌 librime 会话（词库底座为 [rime-ice](https://github.com/iDvel/rime-ice) 雾凇拼音），
-但不使用 fcitx5-rime 前端——智能 ABC 的全部键位语义由本项目的 C++ 引擎实现。
+但不使用 fcitx5-rime 前端——全部键位语义由本项目的 C++ 引擎实现。
 
-English: an fcitx5 input method engine that reproduces the classic Windows
-"Intelligent ABC" typing flow on Linux, powered by an embedded librime
-session (dictionary base: [rime-ice](https://github.com/iDvel/rime-ice)).
+English: ZhiPin — an fcitx5 input method engine that reproduces the classic
+ABC-style typing flow on Linux, powered by an embedded librime session
+(dictionary base: [rime-ice](https://github.com/iDvel/rime-ice)).
+
+## 关于名字
+
+**智拼**是本项目的正式名称。它与「智能ABC」只有输入风格上的渊源，
+不是同一产品，也没有任何商标关联——键位语义、引擎实现、词库链路全部为本项目原创。
 
 ## 特性
 
 - **打字不出候选**：输入拼音时只显示字母缓冲，界面干净
 - **空格出词，空格上屏**：第一次空格放出候选，第二次空格上屏高亮项（默认第一项）
+- **候选出来后继续打字 = 首选项直接上屏**：`nihao` 空格出候选，接着打 `woshi`，
+  「你好」立即上屏、预编辑变成 `woshi`（经典 ABC 手感）
 - **词尽出字**：词组候选翻完后自动接单字页
-- **分阶段逐字选字**（智能 ABC 原味）：多音节输入中选一个单字，立即进入下一音节，
+- **分阶段逐字选字**：多音节输入中选一个单字，立即进入下一音节，
   如 `ceshi` → 选「测」→ 组字框变「测shi」→ 选「是」→ 上屏「测是」
 - **主键盘 `-` / `=` 翻页**（不是小键盘）
 - **回车 / Shift+字母 上屏字母**：反悔通道，拼音原样或字母直接进应用
 - **中文标点全角**：`,.` → `，。`，双引号交替出 `“ ”`，英文模式原样
 - **大字表**：启用 rime-ice 41448 全字表（含生僻字），单字候选自动加深采集
-- **智能ABC 风格主题**：白底黑框、蓝色高亮、竖排候选（fcitx5 classicui）
+- **经典 ABC 风格主题**：白底黑框、蓝色高亮、竖排候选（fcitx5 classicui）
+- **图形化设置界面**：在 fcitx5 配置工具里直接调候选数、初始状态、切换键等
 
 ## 键位
 
@@ -27,6 +35,7 @@ session (dictionary base: [rime-ice](https://github.com/iDvel/rime-ice)).
 |---|---|
 | 字母 | 进入缓冲（不显示候选） |
 | 空格 | 第一次：放出候选；第二次：上屏高亮项 |
+| 字母（候选已放出） | 高亮项立即上屏，字母开始新一轮组合 |
 | 数字 1–9 | 候选选择（放出候选后） |
 | `-` / `=` | 上翻 / 下翻页（主键盘） |
 | ← → | 移动高亮 |
@@ -43,24 +52,24 @@ session (dictionary base: [rime-ice](https://github.com/iDvel/rime-ice)).
 ### Arch Linux
 
 ```sh
-git clone https://github.com/REPLACE-ME/fcitx5-abc.git
-cd fcitx5-abc
+git clone https://github.com/REPLACE-ME/fcitx5-zhipin.git
+cd fcitx5-zhipin
 packaging/package.sh arch
-sudo pacman -U fcitx5-abc-*.pkg.tar.zst
+sudo pacman -U fcitx5-zhipin-*.pkg.tar.zst
 ```
 
 ### Debian / Ubuntu
 
 ```sh
 packaging/package.sh deb
-sudo apt install ./fcitx5-abc_*.deb
+sudo apt install ./fcitx5-zhipin_*.deb
 ```
 
 ### RPM（Fedora / openEuler 等）
 
 ```sh
 packaging/package.sh rpm
-sudo dnf install ./fcitx5-abc-*.rpm
+sudo dnf install ./fcitx5-zhipin-*.rpm
 ```
 
 ### 依赖
@@ -72,8 +81,25 @@ sudo dnf install ./fcitx5-abc-*.rpm
 ### 启用
 
 1. 重启 fcitx5：`fcitx5 -r`（或注销重登）
-2. 在 fcitx5 配置工具中添加输入法「智能ABC」
+2. 在 fcitx5 配置工具中添加输入法「智拼」
 3. 外观主题选「智能ABC」（可选，经典白底黑框样式）
+4. 设置：fcitx5 配置工具 → 附加组件 → 智拼 → 配置
+
+## 设置项
+
+| 项 | 说明 | 默认 |
+|---|---|---|
+| 候选词数量 | 一页最多 9 个 | 9 |
+| 初始输入状态 | 中文 / 英文 | 中文 |
+| 最大编码长度 | 超限字符直接转发应用 | 64 |
+| 空格无候选时 | 提交原文 / 保留编码 | 提交原文 |
+| 切换中英文时未提交编码 | 提交原文 / 清除编码 | 提交原文 |
+| 词典索引路径 | 自研索引（librime 可用时不加载） | 空 |
+| 中英文切换键 | Shift / Control / Alt / Super | Shift_L |
+| 预编辑文本送入应用窗口 | 客户端内联绘制 | 否 |
+
+配置保存在 `~/.config/fcitx5/conf/abc.conf`；首次启动会从旧的
+`~/.config/abc/config.ini` 自动迁移。
 
 ## 从源码构建
 
@@ -99,11 +125,11 @@ export FCITX_ADDON_DIRS="$HOME/.local/lib/fcitx5:/usr/lib/fcitx5"
                                                     └─ librime + rime-ice 词库
 ```
 
-- `source/fcitx5-addon/`：fcitx5 适配层（键转换、UI 映射）
-- `source/rime/`：librime 会话封装——智能 ABC 语义（两段空格、分阶段选字、
-  词尽出字、全角标点）全部在这里的 C++ 实现，不依赖 Lua 脚本
+- `source/fcitx5-addon/`：fcitx5 适配层（键转换、UI 映射、配置界面定义）
+- `source/rime/`：librime 会话封装——ABC 键位语义（两段空格、候选上屏、
+  分阶段选字、词尽出字、全角标点）全部在这里的 C++ 实现，不依赖 Lua 脚本
 - `source/core|dictionary|config|dict-importer/`：自研引擎回退路径（librime 不可用时）
-- `packaging/`：deb / rpm / Arch 打包与随包 Rime 数据，见 [packaging/README.md](packaging/README.md)
+- `packaging/`：deb / rpm / Arch 打包、图标与随包 Rime 数据，见 [packaging/README.md](packaging/README.md)
 - `docs/`：接口契约、模块文档与验收记录
 - `tools/`：探针（`rime_probe_engine`，支持任意键序列回放）与音节表生成器
 

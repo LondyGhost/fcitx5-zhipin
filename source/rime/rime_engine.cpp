@@ -368,6 +368,26 @@ class RimeEngineSession final : public EngineSession {
       clearRime();
       clearState();
       // 落入常规组合流程。
+    } else if (revealed_ && !displayed_.empty()) {
+      // 智能ABC 原味：候选已放出后继续输入字母 = 当前高亮项直接上屏，
+      // 新字母作为新一轮组合的开头（不必再按第二次空格）。
+      // 例：nihao 空格（出候选）→ 输入 w → 「你好」上屏，预编辑变成 w。
+      std::size_t idx = 0;
+      if (highlight_ >= 0 &&
+          static_cast<std::size_t>(highlight_) < displayed_.size()) {
+        idx = static_cast<std::size_t>(highlight_);
+      }
+      std::string chosen = displayed_[idx].text;
+      // rime 候选优先用选词 API，能正确记录词频；拿不到就退回候选原文。
+      if (idx < rimeCount_ && api() != nullptr && sid_ != 0 &&
+          api()->select_candidate_on_current_page(sid_, idx)) {
+        const std::string committed = takeCommit();
+        if (!committed.empty()) chosen = committed;
+      }
+      effects.push_back(commitTextEffect(std::move(chosen)));
+      clearRime();
+      clearState();
+      // 落入常规组合流程：新字母成为新的缓冲首字符。
     }
     buffer_.push_back(ch);
     revealed_ = false;
