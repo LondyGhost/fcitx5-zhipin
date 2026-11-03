@@ -46,7 +46,7 @@ DESTDIR=%{buildroot} cmake --install build
 %license LICENSE
 %doc README.md
 # fcitx5 addon 库在多数发行版装 /usr/lib/fcitx5（fcitx5 上游路径方案），
-# 不用 %{_libdir}（lib64 发行版会指错）。
+# 不用 libdir 宏（lib64 发行版会指错）。
 /usr/lib/fcitx5/libabc.so
 %{_datadir}/fcitx5/addon/abc.conf
 %{_datadir}/fcitx5/inputmethod/abc.conf
