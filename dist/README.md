@@ -1,16 +1,16 @@
 # dist/ — 发布产物（v1.0.0）
 
-构建时间：2026-11-03（源码树 a77f6ec，标签 v1.0.0）
+构建时间：2026-11-03（源码树 c271943）
 构建环境：目标机 Arch Linux（192.168.1.250）via `packaging/package.sh`
 
 ## 文件
 
 | 文件 | 适用发行版 | 安装命令 |
 |---|---|---|
-| `fcitx5-abc_1.0.0-1_amd64.deb` | Debian / Ubuntu | `sudo apt install ./fcitx5-abc_*.deb` |
-| `fcitx5-abc-1.0.0-1.x86_64.rpm` | Fedora / openEuler | `sudo dnf install ./fcitx5-abc-*.rpm` |
-| `fcitx5-abc-1.0.0-1-x86_64.pkg.tar.zst` | Arch / Manjaro | `sudo pacman -U fcitx5-abc-*.pkg.tar.zst` |
-| `fcitx5-abc-1.0.0.tar.gz` | 源码（git archive 干净导出） | 见 README「从源码构建」 |
+| `fcitx5-zhipin_1.0.0-1_amd64.deb` | Debian / Ubuntu | `sudo apt install ./fcitx5-zhipin_*.deb` |
+| `fcitx5-zhipin-1.0.0-1.x86_64.rpm` | Fedora / openEuler | `sudo dnf install ./fcitx5-zhipin-*.rpm` |
+| `fcitx5-zhipin-1.0.0-1-x86_64.pkg.tar.zst` | Arch / Manjaro | `sudo pacman -U fcitx5-zhipin-*.pkg.tar.zst` |
+| `fcitx5-zhipin-1.0.0.tar.gz` | 源码（git archive 干净导出） | 见 README「从源码构建」 |
 | `SHA256SUMS` | 全部产物的校验和 | `sha256sum -c SHA256SUMS` |
 
 ## 内容一致性
