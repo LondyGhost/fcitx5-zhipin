@@ -1,0 +1,12 @@
+# 统一使用 LF 行尾：本项目只在 Linux 上构建，CRLF 会让 PKGBUILD/spec/shell 脚本失效。
+* text=auto eol=lf
+
+# 二进制文件不做行尾转换。
+*.png binary
+*.jpg binary
+*.ico binary
+*.gz binary
+*.zst binary
+*.deb binary
+*.rpm binary
+*.xz binary
