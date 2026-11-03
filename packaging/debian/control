@@ -1,0 +1,32 @@
+Source: fcitx5-abc
+Section: utils
+Priority: optional
+Maintainer: abc-im maintainers <dev@example.com>
+Build-Depends:
+  debhelper-compat (= 13),
+  cmake,
+  ninja-build,
+  g++ (>= 10),
+  libfcitx5core-dev,
+  librime-dev,
+  rime-data
+Standards-Version: 4.6.2
+Homepage: https://github.com/REPLACE-ME/fcitx5-abc
+Rules-Requires-Root: no
+
+Package: fcitx5-abc
+Architecture: any
+Depends:
+  ${shlibs:Depends},
+  ${misc:Depends},
+  fcitx5,
+  librime1,
+  rime-data
+Recommends: rime-ice-data | rime-ice
+Description: Intelligent ABC style input method engine for fcitx5
+ An fcitx5 input method engine that reproduces the classic Windows
+ "Intelligent ABC" typing flow on top of an embedded librime session:
+ type pinyin silently, press space to reveal candidates, space again to
+ commit the highlighted choice, Enter/Shift+letter for raw letters, and
+ -/= for paging. Chinese punctuation and staged per-syllable character
+ picking are supported.

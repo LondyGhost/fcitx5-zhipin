@@ -74,3 +74,12 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/abc-addon.conf"
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/abc-im.conf"
   DESTINATION "${CMAKE_INSTALL_DATADIR}/fcitx5/inputmethod"
   RENAME "abc.conf")
+
+# Rime schema 与 classicui 主题（B 方案运行数据）。
+# schema 放 rime-data 共享目录（与 addon 的 sharedDataDir=/usr/share/rime-data 对应）；
+# 用户目录同名文件可覆盖系统版。
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../packaging/rime/abc.schema.yaml"
+  DESTINATION "${CMAKE_INSTALL_DATADIR}/rime-data")
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../packaging/rime/abc.theme.conf"
+  DESTINATION "${CMAKE_INSTALL_DATADIR}/fcitx5/themes/abc"
+  RENAME "theme.conf")

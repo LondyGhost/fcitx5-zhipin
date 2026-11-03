@@ -1,6 +1,31 @@
+# 本地私密部署资料（含凭据，禁止提交）
 *.local.md
 .env
 .env.*
 credentials*
 *.key
 *.pem
+
+# 构建产物与临时目录
+build/
+build_*/
+shots/
+*.o
+*.obj
+*.exe
+
+# 打包产物
+*.pkg.tar.*
+*.deb
+*.rpm
+src/
+pkg/
+rpmbuild/
+debian/.debhelper/
+debian/fcitx5-abc*/
+*.tar.gz
+
+# 编辑器/系统
+.vscode/
+.idea/
+Thumbs.db

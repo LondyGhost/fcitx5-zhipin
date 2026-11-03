@@ -1,0 +1,6 @@
+fcitx5-abc (1.0.0-1) unstable; urgency=medium
+
+  * Initial release: Intelligent ABC style input method engine for fcitx5
+    with an embedded librime backend.
+
+ -- abc-im maintainers <dev@example.com>  Tue, 03 Nov 2026 08:00:00 +0800
