@@ -51,8 +51,14 @@ case "${1:-}" in
     mkdir -p "$(dirname "$BUILDROOT")"
     tar xzf "$WORK/$NAME-$VERSION.tar.gz" -C "$WORK/deb"
     cp -r "$ROOT/packaging/debian" "$BUILDROOT/debian"
-    (cd "$BUILDROOT" && dpkg-buildpackage -us -uc -b)
-    cp "$WORK/deb/${NAME}_"*.deb .
+    if command -v dh >/dev/null 2>&1; then
+      (cd "$BUILDROOT" && dpkg-buildpackage -us -uc -b)
+      cp "$WORK/deb/${NAME}_"*.deb .
+    else
+      # 无 debhelper（如 Arch 机器上交叉出包）：CMake install + dpkg-deb 手工组装。
+      bash "$ROOT/packaging/debian/build-deb-manual.sh" \
+        "$WORK/$NAME-$VERSION.tar.gz" "$ROOT"
+    fi
     ;;
   rpm)
     RPMBUILD="$WORK/rpmbuild"
