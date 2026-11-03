@@ -12,7 +12,8 @@ set -eu
 
 PROG=$(basename "$0")
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-VERSION=$(sed -n 's/.*VERSION \([0-9.]*\).*/\1/p' "$ROOT/CMakeLists.txt" | head -1)
+# 项目版本取 project( ... VERSION x.y.z )；cmake_minimum_required 的 3.16 必须避开。
+VERSION=$(sed -n 's/^\s*VERSION \([0-9][0-9.]*\).*/\1/p' "$ROOT/CMakeLists.txt" | head -1)
 [ -n "$VERSION" ] || { echo "$PROG: cannot read project version" >&2; exit 1; }
 NAME="fcitx5-abc"
 WORK=$(mktemp -d)

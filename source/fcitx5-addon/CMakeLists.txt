@@ -77,9 +77,14 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/abc-im.conf"
 
 # Rime schema 与 classicui 主题（B 方案运行数据）。
 # schema 放 rime-data 共享目录（与 addon 的 sharedDataDir=/usr/share/rime-data 对应）；
-# 用户目录同名文件可覆盖系统版。
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../packaging/rime/abc.schema.yaml"
+# 用户目录同名文件可覆盖系统版。文件在仓库顶层 packaging/，用 PROJECT_SOURCE_DIR 定位。
+set(ABC_PACKAGING_DIR "${PROJECT_SOURCE_DIR}/packaging/rime")
+if(NOT EXISTS "${ABC_PACKAGING_DIR}/abc.schema.yaml")
+  message(STATUS "abc: packaging/rime/abc.schema.yaml 不存在，跳过 schema/主题安装")
+  return()
+endif()
+install(FILES "${ABC_PACKAGING_DIR}/abc.schema.yaml"
   DESTINATION "${CMAKE_INSTALL_DATADIR}/rime-data")
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../packaging/rime/abc.theme.conf"
+install(FILES "${ABC_PACKAGING_DIR}/abc.theme.conf"
   DESTINATION "${CMAKE_INSTALL_DATADIR}/fcitx5/themes/abc"
   RENAME "theme.conf")
