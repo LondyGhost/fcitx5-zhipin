@@ -49,16 +49,16 @@ jobs:
           runuser -u builder -- git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: 构建 Arch 包
-        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && packaging/package.sh arch"
+        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && bash packaging/package.sh arch"
 
       - name: 构建 deb 包
-        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && packaging/package.sh deb"
+        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && bash packaging/package.sh deb"
 
       - name: 构建 rpm 包
-        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && packaging/package.sh rpm"
+        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && bash packaging/package.sh rpm"
 
       - name: 导出源码包
-        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && packaging/package.sh tarball"
+        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && bash packaging/package.sh tarball"
 
       - name: 汇总产物并计算校验和
         run: |
