@@ -42,6 +42,7 @@ packaging/package.sh rpm
 | 目录 | 内容 |
 |---|---|
 | `arch/` | `PKGBUILD`（AUR 发布版）+ `.SRCINFO` |
+| `archlinuxcn/` | 提交到 archlinuxcn 仓库的 `PKGBUILD` + `lilac.yaml`（见其 README） |
 | `debian/` | `control`、`changelog`、`rules` |
 | `rpm/` | `fcitx5-zhipin.spec` |
 | `rime/` | `abc.schema.yaml`、`abc.theme.conf`（随包安装的运行数据） |
