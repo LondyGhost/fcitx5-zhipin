@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Intelligent ABC style input method engine for fcitx5 (librime backend)
 
 License:        GPL-3.0-or-later
-URL:            https://github.com/REPLACE-ME/fcitx5-zhipin
+URL:            https://github.com/LondyGhost/fcitx5-zhipin
 # Local build: point Source0 at the generated tarball, e.g.
 #   cd .. && tar czf fcitx5-zhipin-1.0.0.tar.gz --transform 's,^,fcitx5-zhipin-1.0.0/,' .
 Source0:        fcitx5-zhipin-%{version}.tar.gz

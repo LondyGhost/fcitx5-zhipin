@@ -1,12 +1,32 @@
 # 智拼（ZhiPin）— fcitx5 输入法引擎
 
-一个 **fcitx5 原生输入法引擎**，在 Linux 上复刻经典 ABC 字母输入风格的手感。
+> **模仿 Windows 下智能ABC拼音输入法的输入习惯。**
+> 打字不出候选、空格出词、候选一出来接着打字就自动上屏——把那套肌肉记忆搬到 Linux 上。
+
+一个 **fcitx5 原生输入法引擎**，复刻经典 ABC 字母输入风格的手感。
 基于内嵌 librime 会话（词库底座为 [rime-ice](https://github.com/iDvel/rime-ice) 雾凇拼音），
 但不使用 fcitx5-rime 前端——全部键位语义由本项目的 C++ 引擎实现。
 
-English: ZhiPin — an fcitx5 input method engine that reproduces the classic
-ABC-style typing flow on Linux, powered by an embedded librime session
-(dictionary base: [rime-ice](https://github.com/iDvel/rime-ice)).
+> English: ZhiPin — an fcitx5 input method engine that reproduces the typing flow of
+> Windows 智能ABC on Linux. Letters stay in a plain buffer, Space reveals candidates,
+> and typing again commits the highlighted word and starts a new composition.
+> Powered by an embedded librime session (dictionary base: [rime-ice](https://github.com/iDvel/rime-ice)).
+
+## 为什么做这个
+
+Linux 上的拼音输入法都是"边打边出候选"：敲下第一个字母，候选窗就弹出来，视线被牵着走。
+Windows 智能ABC 不是这样——**在你按空格之前，它什么都不显示**，只给你一个字母缓冲；
+按下空格才放出候选；候选出来了你接着往下打，它就把第一个词直接上屏，预编辑框换成新的字母。
+
+这套流程打熟了几乎不用看屏幕，手指有自己的节奏。本项目就是把这段肌肉记忆完整搬到 Linux：
+
+| 场景 | 智拼的行为 |
+|---|---|
+| 输入 `nihao` | 只有字母缓冲，**不弹候选** |
+| 按空格 | 放出候选，默认高亮第一项 |
+| 再按空格 | 「你好」上屏 |
+| 按空格后直接打 `woshi` | 「你好」立即上屏，预编辑变成 `woshi` |
+| 打 `ceshi` 选中「测」 | 组字框变「测shi」，接着选「是」，上屏「测是」 |
 
 ## 关于名字
 
@@ -52,7 +72,7 @@ ABC-style typing flow on Linux, powered by an embedded librime session
 ### Arch Linux
 
 ```sh
-git clone https://github.com/REPLACE-ME/fcitx5-zhipin.git
+git clone https://github.com/LondyGhost/fcitx5-zhipin.git
 cd fcitx5-zhipin
 packaging/package.sh arch
 sudo pacman -U fcitx5-zhipin-*.pkg.tar.zst
@@ -74,7 +94,7 @@ sudo dnf install ./fcitx5-zhipin-*.rpm
 
 ### 依赖
 
-- `fcitx5`、`librime`、`rime-data`
+- `fcitx5`、`librime`、`rime-prelude`（Arch 上 rime 数据目录由它提供）
 - 推荐 [rime-ice](https://github.com/iDvel/rime-ice)：把仓库内容放进
   `~/.local/share/fcitx5/rime/`（abc 方案的词库底座，含大字表 41448）
 
@@ -82,7 +102,7 @@ sudo dnf install ./fcitx5-zhipin-*.rpm
 
 1. 重启 fcitx5：`fcitx5 -r`（或注销重登）
 2. 在 fcitx5 配置工具中添加输入法「智拼」
-3. 外观主题选「智能ABC」（可选，经典白底黑框样式）
+3. 外观主题选「智拼」（可选，经典白底黑框样式）
 4. 设置：fcitx5 配置工具 → 附加组件 → 智拼 → 配置
 
 ## 设置项
@@ -106,17 +126,14 @@ sudo dnf install ./fcitx5-zhipin-*.rpm
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-cmake --install build --prefix ~/.local   # 用户级安装
-```
-
-用户级安装后需让 fcitx5 找到 addon 库：
-
-```sh
-export FCITX_ADDON_DIRS="$HOME/.local/lib/fcitx5:/usr/lib/fcitx5"
+sudo cmake --install build --prefix /usr
 ```
 
 依赖：CMake ≥ 3.16、C++17 编译器（addon 需 C++20）、fcitx5 开发头文件、librime。
 缺 fcitx5 SDK 或 librime 时对应模块自动跳过（引擎有自研词典回退路径）。
+
+> 用户级安装（`--prefix ~/.local`）在部分发行版上无法生效：fcitx5 5.1.x 不扫描
+> `~/.local/share/fcitx5/addon/`，addon 注册不上。建议直接装到 `/usr`。
 
 ## 架构
 
@@ -132,6 +149,12 @@ export FCITX_ADDON_DIRS="$HOME/.local/lib/fcitx5:/usr/lib/fcitx5"
 - `packaging/`：deb / rpm / Arch 打包、图标与随包 Rime 数据，见 [packaging/README.md](packaging/README.md)
 - `docs/`：接口契约、模块文档与验收记录
 - `tools/`：探针（`rime_probe_engine`，支持任意键序列回放）与音节表生成器
+
+## 已知问题
+
+- 候选框消失时会有约 120ms 渐隐。这是 KWin 对 Wayland popup 窗口的合成器动画，
+  与输入法本身无关（fcitx5 拼音同样如此）。关掉 `fadingpopups` 可消除，
+  但所有菜单和工具提示的淡入淡出也会一起消失。
 
 ## 致谢
 

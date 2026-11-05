@@ -11,7 +11,7 @@ Build-Depends:
   librime-dev,
   rime-data
 Standards-Version: 4.6.2
-Homepage: https://github.com/REPLACE-ME/fcitx5-zhipin
+Homepage: https://github.com/LondyGhost/fcitx5-zhipin
 Rules-Requires-Root: no
 
 Package: fcitx5-zhipin
