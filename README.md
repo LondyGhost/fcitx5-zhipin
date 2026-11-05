@@ -1,5 +1,9 @@
 # 智拼（ZhiPin）— fcitx5 输入法引擎
 
+[![Build packages](https://github.com/LondyGhost/fcitx5-zhipin/actions/workflows/build-packages.yml/badge.svg)](https://github.com/LondyGhost/fcitx5-zhipin/actions/workflows/build-packages.yml)
+[![Release](https://img.shields.io/github/v/release/LondyGhost/fcitx5-zhipin)](https://github.com/LondyGhost/fcitx5-zhipin/releases/latest)
+[![License](https://img.shields.io/github/license/LondyGhost/fcitx5-zhipin)](LICENSE)
+
 > **模仿 Windows 下智能ABC拼音输入法的输入习惯。**
 > 打字不出候选、空格出词、候选一出来接着打字就自动上屏——把那套肌肉记忆搬到 Linux 上。
 
@@ -68,6 +72,9 @@ Windows 智能ABC 不是这样——**在你按空格之前，它什么都不显
 | 标点 | 中文态出全角标点 |
 
 ## 安装
+
+预编译包（deb / rpm / Arch）在 [Releases](https://github.com/LondyGhost/fcitx5-zhipin/releases/latest)
+页面，由 GitHub Actions 在每次打 tag 时自动构建并附上 SHA256SUMS。也可以从源码自行打包：
 
 ### Arch Linux
 

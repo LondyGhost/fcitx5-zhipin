@@ -1,0 +1,91 @@
+name: Build packages
+
+# 打 tag 自动出三平台安装包并挂到 Release；也可以在 Actions 页面手动触发（只出 artifact）。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: deb / rpm / Arch
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # 统一在 Arch 容器里出三平台包：packaging/package.sh 的 deb 分支自带
+    # 无 debhelper 的交叉组装路径（CMake install + dpkg-deb），rpm 分支用 rpmbuild。
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: 初始化 pacman 密钥环
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Sy --noconfirm --needed archlinux-keyring
+          pacman -Syu --noconfirm
+
+      - name: 安装构建依赖
+        run: |
+          pacman -S --noconfirm --needed \
+            base-devel git cmake ninja \
+            fcitx5 librime rime-prelude hicolor-icon-theme \
+            rpm-tools dpkg github-cli
+
+      - uses: actions/checkout@v4
+
+      # makepkg 拒绝以 root 运行，单独建一个构建用户。
+      - name: 准备非 root 构建用户
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          runuser -u builder -- git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: 构建 Arch 包
+        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && packaging/package.sh arch"
+
+      - name: 构建 deb 包
+        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && packaging/package.sh deb"
+
+      - name: 构建 rpm 包
+        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && packaging/package.sh rpm"
+
+      - name: 导出源码包
+        run: runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE' && packaging/package.sh tarball"
+
+      - name: 汇总产物并计算校验和
+        run: |
+          mkdir -p out
+          find . -maxdepth 1 -type f \
+            \( -name '*.deb' -o -name '*.rpm' -o -name '*.pkg.tar.zst' -o -name '*.tar.gz' \) \
+            ! -name '*debug*' -exec cp -v {} out/ \;
+          cd out && sha256sum * > SHA256SUMS && echo '--- SHA256SUMS ---' && cat SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fcitx5-zhipin-packages
+          path: out/*
+          if-no-files-found: error
+
+      - name: 上传到 Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" \
+                 --repo "$GITHUB_REPOSITORY" \
+                 --title "智拼 $GITHUB_REF_NAME" \
+                 --notes "安装说明见 README，打包细节见 packaging/README.md"
+          gh release upload "$GITHUB_REF_NAME" out/* --clobber --repo "$GITHUB_REPOSITORY"
+          echo "=== Release 附件 ==="
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[] | "\(.name)  \(.size) bytes"'
