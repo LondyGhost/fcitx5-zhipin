@@ -40,10 +40,13 @@ case "${1:-}" in
     mkdir -p "$BUILDROOT"
     cp "$WORK/$NAME-$VERSION.tar.gz" "$BUILDROOT/$NAME-$VERSION.tar.gz"
     cp "$ROOT/packaging/arch/PKGBUILD" "$BUILDROOT/"
-    # 本地构建：source 指向刚导出的 tarball。
+    # 本地构建：source 指向刚导出的 tarball，并重算校验和。
+    # 不用 updpkgsums——它在无 tty 的容器里可能静默失败，导致 sha256 不匹配。
     sed -i "s|source=(\".*\")|source=(\"$NAME-$VERSION.tar.gz\")|" \
       "$BUILDROOT/PKGBUILD"
-    (cd "$BUILDROOT" && updpkgsums >/dev/null 2>&1 || true; makepkg -f)
+    SUM=$(sha256sum "$BUILDROOT/$NAME-$VERSION.tar.gz" | awk '{print $1}')
+    sed -i "s|^sha256sums=.*|sha256sums=('$SUM')|" "$BUILDROOT/PKGBUILD"
+    (cd "$BUILDROOT" && makepkg -f)
     cp "$BUILDROOT"/*.pkg.tar.* .
     ;;
   deb)
