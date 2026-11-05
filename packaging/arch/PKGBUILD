@@ -1,8 +1,12 @@
-# Maintainer: fcitx5-zhipin project
+# Maintainer: LondyGhost <londyghost@users.noreply.github.com>
 #
-# Build:   makepkg -f            (需要与本文件同目录有 fcitx5-zhipin-<ver>.tar.gz，
-#          或用仓库根目录的 packaging/package.sh arch 自动完成)
-# Install: sudo pacman -U fcitx5-zhipin-<ver>-<pkgrel>-<arch>.pkg.tar.zst
+# AUR 发布版：source 指向 GitHub tag 源码包。
+# 本地构建（离线 / 无网）请用仓库根目录的 packaging/package.sh arch，
+# 它会自动把 source 换成本地 git archive 出来的 tarball 并重算校验和。
+#
+# 用 codeload.github.com 而非 github.com/.../archive/...：
+# 后者会 302 跳到 codeload，部分地区（含中国大陆）github.com 首跳被墙，
+# 直连 codeload 少一次跳转，成功率更高。
 
 pkgname=fcitx5-zhipin
 pkgver=1.0.0
@@ -11,11 +15,11 @@ pkgdesc="Intelligent ABC style input method engine for fcitx5 (librime backend)"
 arch=('x86_64')
 url="https://github.com/LondyGhost/fcitx5-zhipin"
 license=('GPL-3.0-only')
-depends=('fcitx5' 'librime' 'rime-prelude')
+depends=('fcitx5' 'librime' 'rime-prelude' 'hicolor-icon-theme')
 optdepends=('rime-ice: recommended dictionary base for the abc schema')
-makedepends=('cmake' 'ninja' 'gcc')
-source=("https://github.com/LondyGhost/fcitx5-zhipin/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+makedepends=('cmake' 'ninja' 'gcc' 'pkgconf')
+source=("$pkgname-$pkgver.tar.gz::https://codeload.github.com/LondyGhost/fcitx5-zhipin/tar.gz/refs/tags/v$pkgver")
+sha256sums=('90d846eb13954608e61bf157a81f24d570586beaff2f5307269795ad22ba05c3')
 
 build() {
   cmake -S "$pkgname-$pkgver" -B build -G Ninja \
