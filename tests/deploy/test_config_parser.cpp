@@ -145,7 +145,7 @@ void runAll() {
     check(r.engine.modeSwitchCompositionPolicy ==
               abc::ModeSwitchCompositionPolicy::kCommitRaw,
           "bad switch policy falls back");
-    check(r.addon.preeditInClient, "bad bool falls back true");
+    check(!r.addon.preeditInClient, "bad bool falls back false");
     check(hasWarning(r, "pageSize"), "bad pageSize warned");
     check(noWarningContains(r, "257"), "warnings never contain values");
     check(alwaysValid(r), "garbage config result is session-ready");
@@ -231,7 +231,7 @@ void runAll() {
     const abc::config::ParseResult r =
         abc::config::parseFile("/nonexistent/abc/config.ini");
     check(r.engine.pageSize == 9 && r.addon.modeSwitchKey == "Shift" &&
-              r.addon.preeditInClient,
+              !r.addon.preeditInClient,
           "missing file yields defaults");
     check(hasWarning(r, "not readable"), "missing file warned");
     check(alwaysValid(r), "missing-file result is session-ready");

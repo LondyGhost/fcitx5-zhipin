@@ -12,7 +12,7 @@ if(ABC_BASH_EXECUTABLE)
     COMMAND "${ABC_BASH_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tests/deploy/test_install_uninstall.sh")
   set_tests_properties(abc_deploy_install_uninstall PROPERTIES
-    ENVIRONMENT "ABC_PROJECT_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+    ENVIRONMENT "ABC_PROJECT_SOURCE_DIR=${CMAKE_SOURCE_DIR};ABC_TEST_SYSTEM_ROOT=${CMAKE_BINARY_DIR}/test-system-root"
     TIMEOUT 300)
 
   foreach(_script IN ITEMS build-abc.sh build-staging.sh install-user.sh uninstall-user.sh)

@@ -573,8 +573,14 @@ assert_eq "$rc" "0" "25.6 隔离前缀安装退出码 0"
 assert_eq "$(sha_of "$t25b_root/keep/keepme.txt")" "$keep_before" "25.7 前缀外文件未被改动"
 assert_eq "$(find "$t25b_root" -name libabc.so -not -path "$t25b_prefix/*" 2>/dev/null | wc -l | tr -d ' ')" "0" \
   "25.8 前缀外无 addon 文件"
-assert_no_file "/usr/lib/fcitx5/libabc.so" "25.9 /usr 无本项目 addon 库"
-assert_no_file "/usr/share/fcitx5/addon/abc.conf" "25.10 /usr 无本项目 addon 描述"
+_system_root="${ABC_TEST_SYSTEM_ROOT:-}"
+if [[ -n "$_system_root" ]]; then
+  assert_no_file "$_system_root/usr/lib/fcitx5/libabc.so" "25.9 /usr 无本项目 addon 库"
+  assert_no_file "$_system_root/usr/share/fcitx5/addon/abc.conf" "25.10 /usr 无本项目 addon 描述"
+else
+  assert_no_file "/usr/lib/fcitx5/libabc.so" "25.9 /usr 无本项目 addon 库"
+  assert_no_file "/usr/share/fcitx5/addon/abc.conf" "25.10 /usr 无本项目 addon 描述"
+fi
 assert_no_file "/opt/abc" "25.11 /opt 无本项目目录"
 
 # ---------------------------------------------------------------- 26 FCITX_ADDON_DIRS 安全处理

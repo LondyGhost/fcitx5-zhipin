@@ -322,9 +322,9 @@ LookupResult RuntimeDictionary::lookup(std::string_view codePrefix,
     syl_total = countSingleCharRun_(syl_lo, syl_hi);
   }
 
-  // 前缀扩展段仅在没有精确词语时兜底（部分拼音输入仍可命中完整词）。
-  const bool include_sub = (exact_total == 0);
-  const std::uint64_t effective_sub = include_sub ? sub_total : 0;
+  // 精确候选之后继续提供前缀扩展词（例如输入 "ni" 时同时显示
+  // "nihao"/"nihaoma"），保持候选查询契约中的 exact -> syl -> sub 顺序。
+  const std::uint64_t effective_sub = sub_total;
   const std::uint64_t total = exact_total + syl_total + effective_sub;
 
   result.batch.offset = offset;
@@ -342,7 +342,7 @@ LookupResult RuntimeDictionary::lookup(std::string_view codePrefix,
   if (result.batch.items.size() < limit) {
     emitSingleCharRun_(syl_lo, syl_hi, &skip, limit, &result.batch);
   }
-  if (include_sub && result.batch.items.size() < limit) {
+  if (result.batch.items.size() < limit) {
     emit_(exact_hi, sub_hi, &skip, limit, &result.batch);
   }
 

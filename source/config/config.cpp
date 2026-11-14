@@ -165,7 +165,7 @@ void applyKeyValue(Parser* p, std::size_t lineNo, const std::string& key,
     return;
   }
   if (key == "preeditInClient") {
-    p->applyEnumPair(lineNo, key, value, &addon.preeditInClient, "true");
+    p->applyEnumPair(lineNo, key, value, &addon.preeditInClient, "false");
     return;
   }
   p->warn(lineNo, key, "unknown key, ignored");
