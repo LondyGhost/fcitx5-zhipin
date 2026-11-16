@@ -1,5 +1,5 @@
 Name:           fcitx5-zhipin
-Version:        1.0.0
+Version:        1.0.1
 Release:        1%{?dist}
 Summary:        Intelligent ABC style input method engine for fcitx5 (librime backend)
 
@@ -55,5 +55,10 @@ DESTDIR=%{buildroot} cmake --install build
 %{_datadir}/icons/hicolor/scalable/apps/fcitx5-zhipin.svg
 
 %changelog
+* Mon Nov 16 2026 abc-im maintainers <dev@example.com> - 1.0.1-1
+- Fix dictionary lookup: prefix-extension candidates follow exact matches.
+- Fix preeditInClient fallback to documented default (false).
+- Deploy tests: isolate system-root checks via ABC_TEST_SYSTEM_ROOT.
+- build-abc.sh: reject invalid --staging before configure (protect build cache).
 * Mon Nov 02 2026 abc-im maintainers <dev@example.com> - 1.0.0-1
 - Initial release.

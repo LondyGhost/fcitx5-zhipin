@@ -1,3 +1,12 @@
+fcitx5-zhipin (1.0.1-1) unstable; urgency=medium
+
+  * Fix dictionary lookup: prefix-extension candidates follow exact matches.
+  * Fix preeditInClient fallback to documented default (false).
+  * Deploy tests: isolate system-root checks via ABC_TEST_SYSTEM_ROOT.
+  * build-abc.sh: reject invalid --staging before configure.
+
+ -- abc-im maintainers <dev@example.com>  Mon, 16 Nov 2026 10:00:00 +0800
+
 fcitx5-zhipin (1.0.0-1) unstable; urgency=medium
 
   * Initial release: Intelligent ABC style input method engine for fcitx5

@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(abc_engine
-  VERSION 1.0.0
+  VERSION 1.0.1
   DESCRIPTION "智拼（ZhiPin）：fcitx5 输入法引擎（经典 ABC 字母输入风格）"
   LANGUAGES CXX)
 
