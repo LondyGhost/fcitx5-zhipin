@@ -19,7 +19,7 @@ depends=('fcitx5' 'librime' 'rime-prelude' 'hicolor-icon-theme')
 optdepends=('rime-ice: recommended dictionary base for the abc schema')
 makedepends=('cmake' 'ninja' 'gcc' 'pkgconf')
 source=("$pkgname-$pkgver.tar.gz::https://codeload.github.com/LondyGhost/fcitx5-zhipin/tar.gz/refs/tags/v$pkgver")
-sha256sums=('5c0fb4c595deab0e649769d531f67c59a3a341b49f1576c4ecee930093f22a37')
+sha256sums=('f59da7bff709a7051cbb033aba42d3424c2135d85551cd144f30a521f024aa0f')
 
 build() {
   cmake -S "$pkgname-$pkgver" -B build -G Ninja \
