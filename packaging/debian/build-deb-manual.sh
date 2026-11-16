@@ -8,7 +8,14 @@ set -eu
 TARBALL="$1"
 OUT="${2:-.}"
 NAME="fcitx5-zhipin"
-VERSION="1.0.0"
+# 版本号从源码包文件名推导（fcitx5-zhipin-<版本>.tar.gz），与 package.sh
+# 的 $NAME-$VERSION 命名一致；写死会随发版漂移（v1.0.1 曾把 deb 打成 1.0.0）。
+BASE=$(basename "$TARBALL"); BASE=${BASE%.tar.gz}
+VERSION=${BASE#"$NAME-"}
+if [ -z "$VERSION" ] || [ "$VERSION" = "$BASE" ]; then
+  echo "$PROG: cannot derive VERSION from tarball name: $TARBALL" >&2
+  exit 1
+fi
 ARCH=$(uname -m)
 case "$ARCH" in
   x86_64) ARCH=amd64 ;;

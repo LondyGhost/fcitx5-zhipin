@@ -44,6 +44,9 @@ case "${1:-}" in
     # 不用 updpkgsums——它在无 tty 的容器里可能静默失败，导致 sha256 不匹配。
     sed -i "s|source=(\".*\")|source=(\"$NAME-$VERSION.tar.gz\")|" \
       "$BUILDROOT/PKGBUILD"
+    # pkgver 必须与本次导出的源码包版本一致：tag 早于打包材料升版时
+    # （v1.0.1 首次 CI），build() 会找不到 $pkgname-$pkgver 目录而失败。
+    sed -i "s|^pkgver=.*|pkgver=$VERSION|" "$BUILDROOT/PKGBUILD"
     SUM=$(sha256sum "$BUILDROOT/$NAME-$VERSION.tar.gz" | awk '{print $1}')
     sed -i "s|^sha256sums=.*|sha256sums=('$SUM')|" "$BUILDROOT/PKGBUILD"
     (cd "$BUILDROOT" && makepkg -f)
