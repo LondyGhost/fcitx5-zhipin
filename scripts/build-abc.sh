@@ -89,6 +89,13 @@ esac
 case "$PREFIX" in
   /|/usr|/usr/*|/opt|/opt/*) err "禁止把 --prefix 设为 /、/usr 或 /opt（项目安全边界）"; exit 1 ;;
 esac
+# staging 危险前缀同样必须在 configure 之前拒绝：否则像测试 16.4 那样
+# “拒绝非法 staging”会先用默认 BUILD_DIR=$SOURCE_DIR/build 和默认
+# PREFIX=$HOME/.local 完整 configure/build 一遍，把调用方的主构建缓存
+# 连带污染（曾导致 makepkg 打包把 addon 装进 $HOME/.local）。
+case "$STAGING" in
+  /|/usr|/usr/*|/opt|/opt/*) err "禁止把 --staging 设为 /、/usr 或 /opt"; exit 1 ;;
+esac
 
 if [ -z "$GENERATOR" ]; then
   if command -v ninja >/dev/null 2>&1; then GENERATOR="Ninja"
@@ -119,9 +126,6 @@ if [ "$RUN_TESTS" -eq 1 ]; then
 fi
 
 if [ -n "$STAGING" ]; then
-  case "$STAGING" in
-    /|/usr|/usr/*|/opt|/opt/*) err "禁止把 --staging 设为 /、/usr 或 /opt"; exit 1 ;;
-  esac
   [ -f "$SELF_DIR/build-staging.sh" ] || { err "缺少 scripts/build-staging.sh"; exit 2; }
   install_prefix="$(mktemp -d "${TMPDIR:-/tmp}/abc-cmake-prefix.XXXXXX")" || {
     err "无法创建临时安装前缀"; exit 2; }
