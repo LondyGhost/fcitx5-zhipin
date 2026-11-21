@@ -10,6 +10,8 @@
 
 #include <rime_api.h>
 
+#include "user_phrases.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -214,13 +216,11 @@ class SingleCharIndex {
   std::map<std::string, std::vector<std::string>> cache_;
 };
 
-// 把 code 切成音节数最少的方案，输出完整切分；并列取更长首音节。
-// 例：zhineng -> ["zhi","neng"]，xian -> ["xian"]，切不开返回 false。
-bool segmentAll(const std::string& code, SingleCharIndex* index,
-                std::vector<std::string>* out) {
-  (void)index;
+// 把一段不含分隔符的编码切成音节数最少的方案，输出完整切分；
+// 并列取更长首音节。例：zhineng -> ["zhi","neng"]，xian -> ["xian"]。
+bool segmentPart(const std::string& code, std::vector<std::string>* out) {
   const std::size_t n = code.size();
-  if (n < 2) return false;
+  if (n < 1) return false;
   const std::size_t kInf = static_cast<std::size_t>(-1);
   std::vector<std::size_t> best(n + 1, kInf);
   std::vector<std::size_t> pick(n + 1, 0);
@@ -244,6 +244,32 @@ bool segmentAll(const std::string& code, SingleCharIndex* index,
     i += pick[i];
   }
   return true;
+}
+
+// 支持 ' 作为音节分隔符：按 ' 分段后分别切分，结果拼平（分隔符本身不留在
+// 音节表里，只用于强制断点）。例：shan'an -> ["shan","an"]。
+bool segmentAll(const std::string& code, SingleCharIndex* index,
+                std::vector<std::string>* out) {
+  (void)index;
+  out->clear();
+  std::size_t start = 0;
+  while (true) {
+    const std::size_t sep = code.find('\'', start);
+    const std::string part =
+        code.substr(start, sep == std::string::npos ? std::string::npos
+                                                   : sep - start);
+    if (!part.empty()) {
+      std::vector<std::string> sub;
+      if (!segmentPart(part, &sub)) {
+        out->clear();
+        return false;
+      }
+      out->insert(out->end(), sub.begin(), sub.end());
+    }
+    if (sep == std::string::npos) break;
+    start = sep + 1;
+  }
+  return !out->empty();
 }
 
 // 首音节；切不开返回 false。当前未使用（保留给后续按音节分组）。
@@ -318,7 +344,13 @@ class RimeEngineSession final : public EngineSession {
         }
         break;
       case KeyCode::kPunctuation:
-        onPunctuation(cmd.unicode, effects, consumed);
+        // 单引号是音节分隔符（schema 的 speller/delimiter 已含 '），
+        // 不能当普通标点立刻把字母上屏，否则 shan'an 会变成 "shan'"。
+        if (cmd.unicode == U'\'') {
+          onSeparator(effects, consumed);
+        } else {
+          onPunctuation(cmd.unicode, effects, consumed);
+        }
         break;
       case KeyCode::kBackspace:
         onBackspace(effects, consumed);
@@ -390,9 +422,10 @@ class RimeEngineSession final : public EngineSession {
         idx = static_cast<std::size_t>(highlight_);
       }
       std::string chosen = displayed_[idx].text;
+      const int rimeIdx = rimeIndexFor(idx);
       // rime 候选优先用选词 API，能正确记录词频；拿不到就退回候选原文。
-      if (idx < rimeCount_ && api() != nullptr && sid_ != 0 &&
-          api()->select_candidate_on_current_page(sid_, idx)) {
+      if (rimeIdx >= 0 && api() != nullptr && sid_ != 0 &&
+          api()->select_candidate_on_current_page(sid_, rimeIdx)) {
         const std::string committed = takeCommit();
         if (!committed.empty()) chosen = committed;
       }
@@ -435,6 +468,35 @@ class RimeEngineSession final : public EngineSession {
     }
     consumed = true;
     (void)effects;
+  }
+
+  // 单引号：音节分隔符。shan'an = 「汕安」，不是「shan」+「'」。
+  // 空缓冲时原样交给应用（英文输入里 ' 仍然要能用）。
+  void onSeparator(std::vector<Effect>& effects, bool& consumed) {
+    if (buffer_.empty()) return;  // 没有组合：' 原样转发
+    if (stage_ > 0) {
+      // 分阶段选字中按分隔符：先上屏已选的字，分隔符本身丢弃。
+      effects.push_back(commitTextEffect(picked_));
+      clearRime();
+      clearState();
+      consumed = true;
+      return;
+    }
+    if (buffer_.size() >= config_.maxBufferChars) return;
+    // 连续分隔符没有意义：消费掉，避免 ' 漏进应用。
+    if (buffer_.back() == '\'') {
+      consumed = true;
+      return;
+    }
+    buffer_.push_back('\'');
+    revealed_ = false;
+    highlight_ = 0;
+    charPage_ = 0;
+    charStart_ = 0;
+    syllables_.clear();  // 编码变了，重新切分
+    processKey(0x27);    // rime 的 delimiter 认 '，交给它继续组合
+    mode_ = Mode::kComposing;
+    consumed = true;
   }
 
   // 中文态标点：先提交手头组合（若有），再出全角标点。
@@ -597,6 +659,48 @@ class RimeEngineSession final : public EngineSession {
     return page;
   }
 
+  // displayed_ 索引 -> rime 当前页内的候选索引；-1 表示不是 rime 候选
+  // （用户词组记忆插在最前面，会把后面的索引整体推后 userCount_）。
+  int rimeIndexFor(std::size_t idx) const {
+    if (idx < userCount_) return -1;
+    const std::size_t r = idx - userCount_;
+    return r < rimeCount_ ? static_cast<int>(r) : -1;
+  }
+
+  // 把该编码下学到的词组插到候选最前面（仅第一页、非分阶段选字）。
+  // 命中时 userCount_ 记录插入个数，供 rimeIndexFor() 做偏移。
+  void injectUserPhrases() {
+    std::vector<std::string> learned =
+        UserPhraseStore::instance().lookup(buffer_);
+    if (learned.empty()) return;
+
+    std::vector<Candidate> merged;
+    merged.reserve(learned.size() + displayed_.size());
+    for (std::string& text : learned) {
+      bool dup = false;
+      for (const Candidate& existing : displayed_) {
+        if (existing.text == text) {
+          dup = true;
+          break;
+        }
+      }
+      if (dup) continue;  // rime 自己也能给出，就不重复占位
+      Candidate c;
+      c.text = std::move(text);
+      c.code = buffer_;
+      c.source = "user";
+      merged.push_back(std::move(c));
+    }
+    if (merged.empty()) return;
+
+    userCount_ = merged.size();
+    for (Candidate& c : displayed_) merged.push_back(std::move(c));
+    if (merged.size() > config_.pageSize) merged.resize(config_.pageSize);
+    displayed_ = std::move(merged);
+    // 截断可能吃掉尾部的 rime 候选，重新算实际保留的个数。
+    rimeCount_ = displayed_.size() > userCount_ ? displayed_.size() - userCount_ : 0;
+  }
+
   // 上屏第 idx 个候选。
   //   分阶段选字中：取该字，进入下一音节；全部选完才真正上屏。
   //   选中「单字」且输入可切成多音节：进入分阶段选字（智能ABC 原味）。
@@ -625,22 +729,26 @@ class RimeEngineSession final : public EngineSession {
       return;
     }
 
-    if (idx < rimeCount_) {
-      // 用 Rime 的选词 API（不是转发数字键）：会正确提交并记用户词频。
-      if (api() != nullptr && sid_ != 0 &&
-          api()->select_candidate_on_current_page(sid_, idx)) {
-        std::string text = takeCommit();
-        if (text.empty()) text = chosen;  // 兜底：拿不到 commit 就用候选原文
-        effects.push_back(commitTextEffect(std::move(text)));
-        clearState();
-        return;
-      }
+    const int rimeIdx = rimeIndexFor(idx);
+    if (rimeIdx < 0) {
+      // 用户词组记忆命中（或词尽后追加的单字）：直接上屏，不经过 rime。
+      // 累加次数让常用词下次排更前；单字会被 store 忽略。
+      UserPhraseStore::instance().add(buffer_, chosen);
       effects.push_back(commitTextEffect(chosen));
       clearRime();
       clearState();
       return;
     }
 
+    // 用 Rime 的选词 API（不是转发数字键）：会正确提交并记用户词频。
+    if (api() != nullptr && sid_ != 0 &&
+        api()->select_candidate_on_current_page(sid_, rimeIdx)) {
+      std::string text = takeCommit();
+      if (text.empty()) text = chosen;  // 兜底：拿不到 commit 就用候选原文
+      effects.push_back(commitTextEffect(std::move(text)));
+      clearState();
+      return;
+    }
     effects.push_back(commitTextEffect(chosen));
     clearRime();
     clearState();
@@ -654,6 +762,9 @@ class RimeEngineSession final : public EngineSession {
     // 进入分阶段选字后不再需要 Rime 的组合，先清掉，避免重复提交。
     if (stage_ == 1) clearRime();
     if (stage_ >= syllables_.size()) {
+      // 记进用户词组：下次同一编码直接出这个词。rime 的 user_dict 是关着的，
+      // 而且这条路径 clearRime() 后自己上屏，根本不经过 rime 的 commit。
+      UserPhraseStore::instance().add(buffer_, picked_);
       effects.push_back(commitTextEffect(picked_));
       clearState();
       return;
@@ -728,6 +839,7 @@ class RimeEngineSession final : public EngineSession {
     mode_ = Mode::kChineseEmpty;
     displayed_.clear();
     rimeCount_ = 0;
+    userCount_ = 0;
     syllables_.clear();
     stage_ = 0;
     stagePage_ = 0;
@@ -756,6 +868,7 @@ class RimeEngineSession final : public EngineSession {
     result.highlight = -1;
     displayed_.clear();
     rimeCount_ = 0;
+    userCount_ = 0;
     // 防御：没有音节切分就没有单字页
     if (charPage_ > 0 && syllables_.empty()) charPage_ = 0;
 
@@ -826,6 +939,9 @@ class RimeEngineSession final : public EngineSession {
           api()->free_context(&ctx);
         }
 
+        // 用户词组记忆：学到的词插到第一页最前面，用户不用再逐字选。
+        if (result.page == 0) injectUserPhrases();
+
         // 音节切分：分阶段选字与「词尽出字」都要用，这里保证每次都算好。
         if (syllables_.empty()) segmentAll(buffer_, index_, &syllables_);
 
@@ -880,6 +996,8 @@ class RimeEngineSession final : public EngineSession {
   int highlight_ = 0;
   std::vector<Candidate> displayed_;
   std::size_t rimeCount_ = 0;
+  // displayed_ 前缀里用户词组（记忆）的个数；这些不是 rime 候选，索引要偏移。
+  std::size_t userCount_ = 0;
   // 分阶段选字（智能ABC 原味）：syllables_ 是完整切分，stage_ 是已选音节数，
   // picked_ 是已选的字。stage_ == 0 表示还在「词语 + 首音节单字」阶段。
   std::vector<std::string> syllables_;
@@ -910,6 +1028,8 @@ bool initializeRime(const RimeOptions& options) {
   if (api() == nullptr) return g_ready = false;
 
   g_options = options;
+  // 用户词组记忆：路径在这里定下来，之后所有会话共用一份。
+  UserPhraseStore::instance().configure(options.userPhrasePath);
   RimeTraits traits;
   fillTraits(&traits, g_options);
   api()->setup(&traits);

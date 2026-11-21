@@ -22,6 +22,8 @@ struct RimeOptions {
   std::string userDataDir;    // 默认 $HOME/.local/share/fcitx5/rime
   std::string logDir;         // 默认 $HOME/.local/share/abc
   std::string schemaId;       // 默认 abc
+  // 用户词组记忆文件（纯文本）。空 = 不落盘，只在内存里记。
+  std::string userPhrasePath;  // 默认 $HOME/.local/share/abc/user_phrases.tsv
 };
 
 // 进程内一次性初始化 librime（含部署）。可重复调用，幂等。

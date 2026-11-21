@@ -18,7 +18,7 @@ endif()
 
 message(STATUS "abc: librime -> ${ABC_RIME_LIBRARY}")
 
-add_library(abc_rime STATIC rime_engine.cpp)
+add_library(abc_rime STATIC rime_engine.cpp user_phrases.cpp)
 target_link_libraries(abc_rime PUBLIC abc_core)
 target_include_directories(abc_rime PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}"

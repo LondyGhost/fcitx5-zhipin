@@ -102,6 +102,13 @@ abc::RimeOptions rimeOptions() {
   const std::string home = homeDir();
   opts.logDir = home.empty() ? "/tmp" : home + "/.local/share/abc";
   opts.schemaId = "abc";
+  // 用户词组记忆：ABC_USER_PHRASES 可覆盖；没有 HOME 时不落盘。
+  const char* phrases = std::getenv("ABC_USER_PHRASES");
+  if (phrases != nullptr && phrases[0] != '\0') {
+    opts.userPhrasePath = phrases;
+  } else if (!home.empty()) {
+    opts.userPhrasePath = home + "/.local/share/abc/user_phrases.tsv";
+  }
   return opts;
 }
 #endif
