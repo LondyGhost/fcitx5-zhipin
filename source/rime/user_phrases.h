@@ -34,6 +34,12 @@ class UserPhraseStore {
   // 取该编码下学到的词组，按频次降序、同频次按最近使用靠前。
   std::vector<std::string> lookup(const std::string& code);
 
+  // 用已学到的片段拼出整串编码对应的词组。
+  // 例：学过 jinhai->金海、jiaxiao->驾校，则 compose("jinhaijiaxiao")
+  // 返回「金海驾校」。必须能被切成至少两段，否则返回空串
+  // （单段由 lookup 精确命中，不需要拼）。
+  std::string compose(const std::string& code);
+
   // 仅测试用：清空内存表（不动文件）。
   void clearForTest();
 

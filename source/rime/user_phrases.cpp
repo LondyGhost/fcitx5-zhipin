@@ -178,6 +178,41 @@ std::vector<std::string> UserPhraseStore::lookup(const std::string& code) {
   return out;
 }
 
+std::string UserPhraseStore::compose(const std::string& code) {
+  const std::string key = normalizeCode(code);
+  if (key.empty()) return std::string();
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!loaded_) {
+    loaded_ = true;
+    if (!path_.empty()) loadLocked();
+  }
+
+  std::string out;
+  std::size_t pos = 0;
+  int chunks = 0;
+  while (pos < key.size()) {
+    // 从长到短找已学编码前缀：优先长片段，避免 "jin" 抢走 "jinhai"。
+    bool matched = false;
+    for (std::size_t len = key.size() - pos; len >= 1; --len) {
+      const auto it = table_.find(key.substr(pos, len));
+      if (it == table_.end() || it->second.empty()) continue;
+      const Entry* best = &it->second.front();
+      for (const Entry& e : it->second) {
+        if (e.count > best->count) best = &e;
+      }
+      out += best->text;
+      pos += len;
+      ++chunks;
+      matched = true;
+      break;
+    }
+    if (!matched) return std::string();  // 有切不开的部分，整串拼不出来
+  }
+  // 只有一段说明这就是精确命中的情况，交给 lookup 处理。
+  return chunks >= 2 ? out : std::string();
+}
+
 void UserPhraseStore::clearForTest() {
   std::lock_guard<std::mutex> lock(mutex_);
   table_.clear();

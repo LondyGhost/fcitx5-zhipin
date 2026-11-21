@@ -44,7 +44,9 @@ Windows 智能ABC 不是这样——**在你按空格之前，它什么都不显
 - **候选出来后继续打字 = 首选项直接上屏**：`nihao` 空格出候选，接着打 `woshi`，
   「你好」立即上屏、预编辑变成 `woshi`（经典 ABC 手感）
 - **单引号分隔音节**：`shan'an` 明确表示「汕安」而不是让 rime 自己猜切分
-- **记住新词**：`jinhai` → 选「金」+「海」上屏，下次再打 `jinhai`，「金海」直接排在候选第一位
+- **记住新词，也能拼长词**：`jinhai` → 选「金」+「海」上屏，下次再打 `jinhai`，
+  「金海」直接排第一；学过 `jinhai`→金海、`jiaxiao`→驾校 之后，打 `jinhaijiaxiao`
+  会直接给出「金海驾校」
 - **误按符号只进组字框**：`woshurujiafuhao` 中途按到 `\`，组字框变成
   `woshurujiafuhao\`（原样字符），一个字符都不提交给应用；退格先删符号、
   再删拼音；真正上屏时才转成全角 `、`（与 Windows 智能ABC 一致）
@@ -138,6 +140,10 @@ sudo dnf install ./fcitx5-zhipin-*.rpm
 
 逐字选出来的新词会记在 `~/.local/share/abc/user_phrases.tsv`，
 格式是 `编码<TAB>词组<TAB>次数`，可以直接编辑或删除（删掉某行就忘掉那个词）。
+
+查询分两级：先精确匹配整串编码；没有命中时，把编码按已学片段切成若干段
+（优先长片段）再拼接，所以 `jinhai` + `jiaxiao` 能拼出 `jinhaijiaxiao` →「金海驾校」。
+拼出来的词一旦选中也会被记成整串，下次直接精确命中。
 
 随包 schema 里 librime 自己的 `enable_user_dict` 是关的，所以这份记忆由引擎维护：
 分阶段选字不走 rime 的 commit 流程，rime 学不到。环境变量 `ABC_USER_PHRASES`

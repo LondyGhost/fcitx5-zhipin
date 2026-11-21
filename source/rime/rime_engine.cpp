@@ -729,6 +729,12 @@ class RimeEngineSession final : public EngineSession {
   void injectUserPhrases() {
     std::vector<std::string> learned =
         UserPhraseStore::instance().lookup(buffer_);
+    if (learned.empty()) {
+      // 没有整串记录时，用已学片段拼一次：
+      // 学过 jinhai->金海、jiaxiao->驾校，则 jinhaijiaxiao 给出「金海驾校」。
+      std::string composed = UserPhraseStore::instance().compose(buffer_);
+      if (!composed.empty()) learned.push_back(std::move(composed));
+    }
     if (learned.empty()) return;
 
     std::vector<Candidate> merged;
