@@ -439,6 +439,7 @@ class RimeEngineSession final : public EngineSession {
     highlight_ = 0;
     charPage_ = 0;
     charStart_ = 0;
+    syllables_.clear();  // 编码变了，切分失效
     processKey(static_cast<int>(static_cast<unsigned char>(ch)));
     mode_ = Mode::kComposing;
     consumed = true;
@@ -459,6 +460,9 @@ class RimeEngineSession final : public EngineSession {
     highlight_ = 0;
     charPage_ = 0;
     charStart_ = 0;
+    // 编码变了，切分必须失效重算；否则「nihao 空格退格再空格」会沿用
+    // ["ni","hao"] 去切 "niha"，分阶段选字的剩余编码会错。
+    syllables_.clear();
     processKey(kSymBackSpace);
     if (buffer_.empty()) {
       clearRime();
