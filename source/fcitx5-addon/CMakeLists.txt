@@ -66,9 +66,12 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 include(GNUInstallDirs)
+# addon 描述里的 Version 跟随项目版本（此前写死，发版容易漂移）。
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/abc-addon.conf.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/abc-addon.conf" @ONLY)
 install(TARGETS abc_fcitx5_addon
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/fcitx5")
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/abc-addon.conf"
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/abc-addon.conf"
   DESTINATION "${CMAKE_INSTALL_DATADIR}/fcitx5/addon"
   RENAME "abc.conf")
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/abc-im.conf"

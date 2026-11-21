@@ -1,5 +1,5 @@
 Name:           fcitx5-zhipin
-Version:        1.0.1
+Version:        1.1.0
 Release:        1%{?dist}
 Summary:        Intelligent ABC style input method engine for fcitx5 (librime backend)
 
@@ -55,6 +55,12 @@ DESTDIR=%{buildroot} cmake --install build
 %{_datadir}/icons/hicolor/scalable/apps/fcitx5-zhipin.svg
 
 %changelog
+* Sat Nov 21 2026 abc-im maintainers <dev@example.com> - 1.1.0-1
+- New: syllable separator (') and user phrase memory (user_phrases.tsv).
+- New: clickable candidates; Shift-tap mode switch detection.
+- Fix: English mode swallowed letters; punctuation handling in composition;
+  -/= paging vs preedit; syllable re-segmentation on code change.
+- Fix: non-blocking rime deployment; warn when fcitx5-rime is also enabled.
 * Mon Nov 16 2026 abc-im maintainers <dev@example.com> - 1.0.1-1
 - Fix dictionary lookup: prefix-extension candidates follow exact matches.
 - Fix preeditInClient fallback to documented default (false).

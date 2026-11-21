@@ -1,3 +1,13 @@
+fcitx5-zhipin (1.1.0-1) unstable; urgency=medium
+
+  * New: syllable separator (') and user phrase memory (user_phrases.tsv).
+  * New: clickable candidates; Shift-tap mode switch detection.
+  * Fix: English mode swallowed letters; punctuation in composition;
+    -/= paging vs preedit; syllable re-segmentation on code change.
+  * Fix: non-blocking rime deployment; warn when fcitx5-rime is enabled.
+
+ -- abc-im maintainers <dev@example.com>  Sat, 21 Nov 2026 14:45:00 +0800
+
 fcitx5-zhipin (1.0.1-1) unstable; urgency=medium
 
   * Fix dictionary lookup: prefix-extension candidates follow exact matches.
