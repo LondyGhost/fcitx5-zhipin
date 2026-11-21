@@ -441,6 +441,7 @@ class RimeEngineSession final : public EngineSession {
         const std::string committed = takeCommit();
         if (!committed.empty()) chosen = committed;
       }
+      recordCommit(chosen);
       effects.push_back(commitEffect(std::move(chosen)));
       clearRime();
       clearState();
@@ -808,10 +809,12 @@ class RimeEngineSession final : public EngineSession {
         api()->select_candidate_on_current_page(sid_, rimeIdx)) {
       std::string text = takeCommit();
       if (text.empty()) text = chosen;  // 兜底：拿不到 commit 就用候选原文
+      recordCommit(text);
       effects.push_back(commitEffect(std::move(text)));
       clearState();
       return;
     }
+    recordCommit(chosen);
     effects.push_back(commitEffect(chosen));
     clearRime();
     clearState();
@@ -889,6 +892,14 @@ class RimeEngineSession final : public EngineSession {
       api()->free_commit(&commit);
     }
     return text;
+  }
+
+  // 记录这次上屏：从候选列表里选的词也要进记忆表，否则「驾校」这类
+  // 由 rime 给出的词永远不会被记住，后续就没法用它拼更长的词组。
+  // 单字会被 store 自己忽略。
+  void recordCommit(const std::string& text) {
+    if (text.empty()) return;
+    UserPhraseStore::instance().add(buffer_, text);
   }
 
   // 提交文本：组字框里可能挂着误按的符号，一起带走。
