@@ -372,15 +372,15 @@ class RimeEngineSession final : public EngineSession {
         break;
       case KeyCode::kLeft:
       case KeyCode::kRight:
-        onMoveHighlight(cmd.code == KeyCode::kLeft ? -1 : 1, consumed);
+        onMoveHighlight(cmd.code == KeyCode::kLeft ? -1 : 1, effects, consumed);
         break;
       case KeyCode::kUp:
       case KeyCode::kPageUp:
-        onPage(-1, consumed);
+        onPage(-1, effects, consumed);
         break;
       case KeyCode::kDown:
       case KeyCode::kPageDown:
-        onPage(1, consumed);
+        onPage(1, effects, consumed);
         break;
       case KeyCode::kModeSwitch:
         if (!buffer_.empty()) {
@@ -587,15 +587,26 @@ class RimeEngineSession final : public EngineSession {
   }
 
   void onDigit(int digit, std::vector<Effect>& effects, bool& consumed) {
-    if (!revealed_ || digit < 1) return;
+    if (!revealed_) {
+      // 组合中按数字：同样按未处理键处理，避免「数字进了应用、拼音还在组合」。
+      nonHandledKey(effects, consumed);
+      return;
+    }
+    if (digit < 1) return;
     const std::size_t idx = static_cast<std::size_t>(digit - 1);
     if (idx >= displayed_.size()) return;
     commitIndex(idx, effects);
     consumed = true;
   }
 
-  void onMoveHighlight(int delta, bool& consumed) {
-    if (!revealed_ || displayed_.empty()) return;
+  void onMoveHighlight(int delta, std::vector<Effect>& effects, bool& consumed) {
+    if (!revealed_ || displayed_.empty()) {
+      // 组合中按方向键：按未处理键处理——提交原文、结束组合、键交还应用。
+      // 之前直接 return，键漏给应用但组合还活着，编辑器里出现「zhe←」，
+      // 而退格删的是拼音，用户得把整个编码退掉。
+      nonHandledKey(effects, consumed);
+      return;
+    }
     const int count = static_cast<int>(displayed_.size());
     int next = highlight_ + delta;
     if (next < 0) next = 0;
@@ -604,8 +615,13 @@ class RimeEngineSession final : public EngineSession {
     consumed = true;
   }
 
-  void onPage(int delta, bool& consumed) {
-    if (!revealed_) return;
+  void onPage(int delta, std::vector<Effect>& effects, bool& consumed) {
+    if (!revealed_) {
+      // 同上：- / = / PgUp / PgDn 在组合态是「误按的符号」，
+      // 智能ABC 的做法是把字母原样上屏、符号交给应用，一次退格即可删掉。
+      nonHandledKey(effects, consumed);
+      return;
+    }
     if (stage_ > 0) {
       // 分阶段选字：翻当前音节的单字页
       if (syllables_.empty() || stage_ >= syllables_.size()) {
