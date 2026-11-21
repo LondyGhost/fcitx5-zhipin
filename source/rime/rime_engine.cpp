@@ -295,6 +295,18 @@ class RimeEngineSession final : public EngineSession {
  private:
   void dispatch(const KeyCommand& cmd, std::vector<Effect>& effects,
                 bool& consumed) {
+    // 英文态：除 kModeSwitch 外一律不消费（abc/engine.h Mode::kEnglish 契约，
+    // 与自研后端的 dispatchEnglish 一致）。
+    // 早期版本漏了这道门：切英文后字母照样进 buffer 当拼音组合，应用拿不到
+    // 字母；而 kModeSwitch 又只会把 mode 设成 kEnglish，导致再也切不回中文
+    // （之所以不明显，是因为每次上屏 clearState() 都会把 mode 偷偷重置成中文）。
+    if (mode_ == Mode::kEnglish) {
+      if (cmd.code == KeyCode::kModeSwitch) {
+        mode_ = Mode::kChineseEmpty;
+        consumed = true;
+      }
+      return;
+    }
     switch (cmd.code) {
       case KeyCode::kCharacter:
         if (cmd.unicode >= U'a' && cmd.unicode <= U'z') {
@@ -476,6 +488,21 @@ class RimeEngineSession final : public EngineSession {
       highlight_ = 0;
       mode_ = Mode::kSelecting;
       consumed = true;
+      return;
+    }
+    if (displayed_.empty()) {
+      // 已放出候选但列表为空（编码不成立、词典无词等）：按
+      // spaceNoCandidatePolicy 处理。之前这里直接走 commitIndex()，
+      // 因 idx >= displayed_.size() 提前 return，紧接着把 consumed 置 true，
+      // 结果是空格被静默吞掉、缓冲留在原地，设置项形同虚设。
+      if (config_.spaceNoCandidatePolicy ==
+          SpaceNoCandidatePolicy::kCommitRawAndForward) {
+        effects.push_back(commitTextEffect(buffer_));
+        clearRime();
+        clearState();
+      }
+      // 两种策略都把空格转发给应用（与自研后端 5.3 一致）。
+      consumed = false;
       return;
     }
     commitIndex(highlight_, effects);
