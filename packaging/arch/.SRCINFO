@@ -1,6 +1,6 @@
 pkgbase = fcitx5-zhipin
 	pkgdesc = Intelligent ABC style input method engine for fcitx5 (librime backend)
-	pkgver = 1.0.1
+	pkgver = 1.1.0
 	pkgrel = 1
 	url = https://github.com/LondyGhost/fcitx5-zhipin
 	arch = x86_64
@@ -14,7 +14,7 @@ pkgbase = fcitx5-zhipin
 	depends = rime-prelude
 	depends = hicolor-icon-theme
 	optdepends = rime-ice: recommended dictionary base for the abc schema
-	source = fcitx5-zhipin-1.0.1.tar.gz::https://codeload.github.com/LondyGhost/fcitx5-zhipin/tar.gz/refs/tags/v1.0.1
-	sha256sums = f59da7bff709a7051cbb033aba42d3424c2135d85551cd144f30a521f024aa0f
+	source = fcitx5-zhipin-1.1.0.tar.gz::https://codeload.github.com/LondyGhost/fcitx5-zhipin/tar.gz/refs/tags/v1.1.0
+	sha256sums = 59b2dcea2096b14845d1c7b9453c4d6f6a9b289bc5da3f8c35315daac006b1bf
 
 pkgname = fcitx5-zhipin
