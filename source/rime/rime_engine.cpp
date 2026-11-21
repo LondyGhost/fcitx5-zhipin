@@ -462,6 +462,7 @@ class RimeEngineSession final : public EngineSession {
     // 组字框末尾挂着误按的符号：先删符号，再删拼音。
     if (!symbols_.empty()) {
       popLastUtf8(&symbols_);
+      popLastUtf8(&symbolsOut_);
       consumed = true;
       (void)effects;
       return;
@@ -569,7 +570,10 @@ class RimeEngineSession final : public EngineSession {
 
     if (!revealed_) {
       // 组合中：符号挂到组字框末尾，不提交给应用，退格可以把它删掉。
-      symbols_ += symbol;
+      // 组字框显示原样字符（\ 就是 \，, 就是 ,），上屏时才转全角——
+      // 与 Windows 智能ABC 一致；symbolsOut_ 存转换后的结果。
+      symbols_ += std::string(1, static_cast<char>(unicode));
+      symbolsOut_ += symbol;
       consumed = true;
       return;
     }
@@ -883,10 +887,11 @@ class RimeEngineSession final : public EngineSession {
 
   // 提交文本：组字框里可能挂着误按的符号，一起带走。
   Effect commitEffect(std::string text) {
-    if (!symbols_.empty()) {
-      text += symbols_;
-      symbols_.clear();
+    if (!symbolsOut_.empty()) {
+      text += symbolsOut_;
+      symbolsOut_.clear();
     }
+    symbols_.clear();
     return commitTextEffect(std::move(text));
   }
 
@@ -897,6 +902,7 @@ class RimeEngineSession final : public EngineSession {
   void clearState() {
     buffer_.clear();
     symbols_.clear();
+    symbolsOut_.clear();
     revealed_ = false;
     highlight_ = 0;
     mode_ = Mode::kChineseEmpty;
@@ -1055,8 +1061,10 @@ class RimeEngineSession final : public EngineSession {
 
   Mode mode_ = Mode::kChineseEmpty;
   std::string buffer_;
-  // 组字框末尾的符号（组合中误按的标点）。不送 rime，只影响显示与提交。
+  // 组字框末尾的符号（组合中误按的标点）。不送 rime。
+  // symbols_ 是原样字符（显示用），symbolsOut_ 是全角结果（提交用）。
   std::string symbols_;
+  std::string symbolsOut_;
   bool revealed_ = false;
   int highlight_ = 0;
   std::vector<Candidate> displayed_;
