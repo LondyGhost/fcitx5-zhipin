@@ -11,17 +11,15 @@ bool nameEquals(const char* name, const char* expected) {
   return name != nullptr && std::strcmp(name, expected) == 0;
 }
 
-// 翻页键：主键盘 - / =（智能ABC 习惯）+ 物理 Page_Up / Page_Down。
-// 明确不包含小键盘的 KP_Subtract / KP_Equal —— 那两个键照常当普通字符。
-// 只在选择态被核心消费；组合态/英文态原样转发给应用。
+// 翻页键：物理 Page_Up / Page_Down。
+// 主键盘 - / = 不在这里截断——它们同时也是普通符号，需要由引擎按状态决定
+// 「翻页」还是「进组字框」，所以按 kPunctuation 交给核心。
 bool isPageUp(uint32_t sym) {
-  return sym == keysym::kPrior || sym == keysym::kKpPrior ||
-         sym == keysym::kMinus;
+  return sym == keysym::kPrior || sym == keysym::kKpPrior;
 }
 
 bool isPageDown(uint32_t sym) {
-  return sym == keysym::kNext || sym == keysym::kKpNext ||
-         sym == keysym::kEqual;
+  return sym == keysym::kNext || sym == keysym::kKpNext;
 }
 
 }  // namespace

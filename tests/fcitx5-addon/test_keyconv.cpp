@@ -110,6 +110,15 @@ void testPunctuationAndUnknown() {
   expect(comma.code == KeyCode::kPunctuation && comma.unicode == U',',
          "comma -> punctuation");
 
+  // 主键盘 - / = 既是符号也是翻页键：适配层不再截断，交给引擎按状态决定
+  // （有候选时翻页，组合中挂进组字框）。
+  auto minus = toKeyCommand(key(keysym::kMinus), ModeSwitchKey::kShift);
+  expect(minus.code == KeyCode::kPunctuation && minus.unicode == U'-',
+         "minus -> punctuation (engine decides paging)");
+  auto equal = toKeyCommand(key(keysym::kEqual), ModeSwitchKey::kShift);
+  expect(equal.code == KeyCode::kPunctuation && equal.unicode == U'=',
+         "equal -> punctuation (engine decides paging)");
+
   auto tab = toKeyCommand(key(0xff09), ModeSwitchKey::kShift);
   expect(tab.code == KeyCode::kUnknown, "Tab -> unknown");
 

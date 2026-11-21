@@ -150,6 +150,18 @@ void fillTraits(RimeTraits* traits, const RimeOptions& opts) {
 
 // ---------------- 单字查询（用独立会话当音节 oracle） ----------------
 
+// 弹掉最后一个 UTF-8 码位。
+void popLastUtf8(std::string* s) {
+  if (s->empty()) return;
+  std::size_t pos = s->size();
+  while (pos > 0 &&
+         (static_cast<unsigned char>((*s)[pos - 1]) & 0xC0u) == 0x80u) {
+    --pos;
+  }
+  if (pos > 0) --pos;
+  s->erase(pos);
+}
+
 bool isSingleChar(const char* text) {
   if (text == nullptr || text[0] == '\0') return false;
   int chars = 0;
@@ -387,7 +399,7 @@ class RimeEngineSession final : public EngineSession {
           if (config_.modeSwitchCompositionPolicy ==
               ModeSwitchCompositionPolicy::kCommitRaw) {
             // 分阶段选字中缓冲是完整拼音，直接上屏会重复输出已选的字。
-            effects.push_back(commitTextEffect(
+            effects.push_back(commitEffect(
                 stage_ > 0 ? picked_ + remainingCode() : buffer_));
           } else {
             effects.push_back(clearCompositionEffect());
@@ -408,7 +420,7 @@ class RimeEngineSession final : public EngineSession {
     if (buffer_.size() >= config_.maxBufferChars) return;  // 溢出：不消费
     if (stage_ > 0) {
       // 分阶段选字中来了新字母：视作新输入，已选的字先上屏。
-      effects.push_back(commitTextEffect(picked_));
+      effects.push_back(commitEffect(picked_));
       clearRime();
       clearState();
       // 落入常规组合流程。
@@ -429,7 +441,7 @@ class RimeEngineSession final : public EngineSession {
         const std::string committed = takeCommit();
         if (!committed.empty()) chosen = committed;
       }
-      effects.push_back(commitTextEffect(std::move(chosen)));
+      effects.push_back(commitEffect(std::move(chosen)));
       clearRime();
       clearState();
       // 落入常规组合流程：新字母成为新的缓冲首字符。
@@ -447,6 +459,13 @@ class RimeEngineSession final : public EngineSession {
   }
 
   void onBackspace(std::vector<Effect>& effects, bool& consumed) {
+    // 组字框末尾挂着误按的符号：先删符号，再删拼音。
+    if (!symbols_.empty()) {
+      popLastUtf8(&symbols_);
+      consumed = true;
+      (void)effects;
+      return;
+    }
     if (buffer_.empty()) return;
     if (stage_ > 0) {
       // 分阶段选字中：先退已选的字，退完再退字母。
@@ -480,7 +499,7 @@ class RimeEngineSession final : public EngineSession {
     if (buffer_.empty()) return;  // 没有组合：' 原样转发
     if (stage_ > 0) {
       // 分阶段选字中按分隔符：先上屏已选的字，分隔符本身丢弃。
-      effects.push_back(commitTextEffect(picked_));
+      effects.push_back(commitEffect(picked_));
       clearRime();
       clearState();
       consumed = true;
@@ -503,14 +522,24 @@ class RimeEngineSession final : public EngineSession {
     consumed = true;
   }
 
-  // 中文态标点：先提交手头组合（若有），再出全角标点。
-  // 英文模式原样转发。双引号按智能ABC 习惯交替出 “ ”。
+  // 中文态标点。规则（对齐 Windows 智能ABC）：
+  //   - 空缓冲：直接出全角标点；
+  //   - 组合中（未出候选）：符号进【组字框】，不提交给应用，组合继续
+  //     （误按符号时组字框变成 woshurujiafuhao\，退格删掉即可）；
+  //   - 已出候选：上屏当前高亮项 + 符号，结束组合；
+  //   - 已出候选时 - / = 仍然是翻页键。
   void onPunctuation(char32_t unicode, std::vector<Effect>& effects,
                      bool& consumed) {
     if (mode_ == Mode::kEnglish) {
       consumed = false;
       return;
     }
+    // - / = 在主键盘上既是符号也是翻页键：有候选时按翻页处理。
+    if (revealed_ && (unicode == U'-' || unicode == U'=')) {
+      onPage(unicode == U'-' ? -1 : 1, effects, consumed);
+      return;
+    }
+
     const char* full = nullptr;
     if (unicode == U'"') {
       full = quoteOpen_ ? "\xE2\x80\x9C" : "\xE2\x80\x9D";
@@ -518,31 +547,45 @@ class RimeEngineSession final : public EngineSession {
     } else {
       full = zhPunct(unicode);
     }
-    if (full == nullptr) {
-      // 没有映射的符号（如 # $ %）：仍先提交组合，符号原样上屏。
-      if (!buffer_.empty()) {
-        effects.push_back(commitTextEffect(
-            stage_ > 0 ? picked_ + remainingCode() : buffer_));
-        clearRime();
-        clearState();
-      }
-      std::string raw;
-      if (unicode <= 0x7F) {
-        raw.assign(1, static_cast<char>(unicode));
-        effects.push_back(commitTextEffect(std::move(raw)));
-        consumed = true;
-      } else {
-        consumed = false;
-      }
+
+    // 要放进组字框/上屏的符号文本；空表示非 ASCII，交给应用原样处理。
+    std::string symbol;
+    if (full != nullptr) {
+      symbol = full;
+    } else if (unicode <= 0x7F) {
+      symbol.assign(1, static_cast<char>(unicode));
+    }
+    if (symbol.empty()) {
+      consumed = false;
       return;
     }
-    if (!buffer_.empty()) {
-      effects.push_back(commitTextEffect(
-          stage_ > 0 ? picked_ + remainingCode() : buffer_));
-      clearRime();
-      clearState();
+
+    if (buffer_.empty()) {
+      // 没有组合：符号直接上屏。
+      effects.push_back(commitEffect(std::move(symbol)));
+      consumed = true;
+      return;
     }
-    effects.push_back(commitTextEffect(full));
+
+    if (!revealed_) {
+      // 组合中：符号挂到组字框末尾，不提交给应用，退格可以把它删掉。
+      symbols_ += symbol;
+      consumed = true;
+      return;
+    }
+
+    // 已出候选：上屏当前高亮项，再补符号。
+    if (highlight_ >= 0 &&
+        static_cast<std::size_t>(highlight_) < displayed_.size()) {
+      effects.push_back(
+          commitTextEffect(displayed_[static_cast<std::size_t>(highlight_)].text));
+    } else {
+      effects.push_back(commitEffect(
+          stage_ > 0 ? picked_ + remainingCode() : buffer_));
+    }
+    effects.push_back(commitEffect(std::move(symbol)));
+    clearRime();
+    clearState();
     consumed = true;
   }
 
@@ -563,7 +606,7 @@ class RimeEngineSession final : public EngineSession {
       // 结果是空格被静默吞掉、缓冲留在原地，设置项形同虚设。
       if (config_.spaceNoCandidatePolicy ==
           SpaceNoCandidatePolicy::kCommitRawAndForward) {
-        effects.push_back(commitTextEffect(buffer_));
+        effects.push_back(commitEffect(buffer_));
         clearRime();
         clearState();
       }
@@ -580,19 +623,16 @@ class RimeEngineSession final : public EngineSession {
     // 分阶段选字中：上屏「已选字 + 剩余编码字母」，与智能ABC 的回车一致。
     // 其余情况原样上屏字母缓冲。
     std::string text = (stage_ > 0) ? picked_ + remainingCode() : buffer_;
-    effects.push_back(commitTextEffect(std::move(text)));
+    effects.push_back(commitEffect(std::move(text)));
     clearRime();
     clearState();
     consumed = true;
   }
 
   void onDigit(int digit, std::vector<Effect>& effects, bool& consumed) {
-    if (!revealed_) {
-      // 组合中按数字：同样按未处理键处理，避免「数字进了应用、拼音还在组合」。
-      nonHandledKey(effects, consumed);
-      return;
-    }
-    if (digit < 1) return;
+    (void)effects;
+    // 组合中：数字不消费、不动缓冲，组合保留。
+    if (!revealed_ || digit < 1) return;
     const std::size_t idx = static_cast<std::size_t>(digit - 1);
     if (idx >= displayed_.size()) return;
     commitIndex(idx, effects);
@@ -600,13 +640,9 @@ class RimeEngineSession final : public EngineSession {
   }
 
   void onMoveHighlight(int delta, std::vector<Effect>& effects, bool& consumed) {
-    if (!revealed_ || displayed_.empty()) {
-      // 组合中按方向键：按未处理键处理——提交原文、结束组合、键交还应用。
-      // 之前直接 return，键漏给应用但组合还活着，编辑器里出现「zhe←」，
-      // 而退格删的是拼音，用户得把整个编码退掉。
-      nonHandledKey(effects, consumed);
-      return;
-    }
+    (void)effects;
+    // 组合中：不消费、不动缓冲，键交还应用（组合保留）。
+    if (!revealed_ || displayed_.empty()) return;
     const int count = static_cast<int>(displayed_.size());
     int next = highlight_ + delta;
     if (next < 0) next = 0;
@@ -616,12 +652,9 @@ class RimeEngineSession final : public EngineSession {
   }
 
   void onPage(int delta, std::vector<Effect>& effects, bool& consumed) {
-    if (!revealed_) {
-      // 同上：- / = / PgUp / PgDn 在组合态是「误按的符号」，
-      // 智能ABC 的做法是把字母原样上屏、符号交给应用，一次退格即可删掉。
-      nonHandledKey(effects, consumed);
-      return;
-    }
+    (void)effects;
+    // 组合中：- / = / PgUp / PgDn 只把键交还应用，组合保留。
+    if (!revealed_) return;
     if (stage_ > 0) {
       // 分阶段选字：翻当前音节的单字页
       if (syllables_.empty() || stage_ >= syllables_.size()) {
@@ -754,7 +787,7 @@ class RimeEngineSession final : public EngineSession {
       // 用户词组记忆命中（或词尽后追加的单字）：直接上屏，不经过 rime。
       // 累加次数让常用词下次排更前；单字会被 store 忽略。
       UserPhraseStore::instance().add(buffer_, chosen);
-      effects.push_back(commitTextEffect(chosen));
+      effects.push_back(commitEffect(chosen));
       clearRime();
       clearState();
       return;
@@ -765,11 +798,11 @@ class RimeEngineSession final : public EngineSession {
         api()->select_candidate_on_current_page(sid_, rimeIdx)) {
       std::string text = takeCommit();
       if (text.empty()) text = chosen;  // 兜底：拿不到 commit 就用候选原文
-      effects.push_back(commitTextEffect(std::move(text)));
+      effects.push_back(commitEffect(std::move(text)));
       clearState();
       return;
     }
-    effects.push_back(commitTextEffect(chosen));
+    effects.push_back(commitEffect(chosen));
     clearRime();
     clearState();
   }
@@ -785,7 +818,7 @@ class RimeEngineSession final : public EngineSession {
       // 记进用户词组：下次同一编码直接出这个词。rime 的 user_dict 是关着的，
       // 而且这条路径 clearRime() 后自己上屏，根本不经过 rime 的 commit。
       UserPhraseStore::instance().add(buffer_, picked_);
-      effects.push_back(commitTextEffect(picked_));
+      effects.push_back(commitEffect(picked_));
       clearState();
       return;
     }
@@ -824,7 +857,7 @@ class RimeEngineSession final : public EngineSession {
     if (!buffer_.empty()) {
       // 分阶段选字中缓冲仍是完整拼音，直接上屏会重复输出已选的字，
       // 用「已选字 + 剩余编码」作为未处理键的提交内容。
-      effects.push_back(commitTextEffect(
+      effects.push_back(commitEffect(
           stage_ > 0 ? picked_ + remainingCode() : buffer_));
       clearRime();
       clearState();
@@ -848,12 +881,22 @@ class RimeEngineSession final : public EngineSession {
     return text;
   }
 
+  // 提交文本：组字框里可能挂着误按的符号，一起带走。
+  Effect commitEffect(std::string text) {
+    if (!symbols_.empty()) {
+      text += symbols_;
+      symbols_.clear();
+    }
+    return commitTextEffect(std::move(text));
+  }
+
   void clearRime() {
     if (sid_ != 0 && api() != nullptr) api()->clear_composition(sid_);
   }
 
   void clearState() {
     buffer_.clear();
+    symbols_.clear();
     revealed_ = false;
     highlight_ = 0;
     mode_ = Mode::kChineseEmpty;
@@ -884,7 +927,7 @@ class RimeEngineSession final : public EngineSession {
   void refresh() {
     EngineResult result;
     result.mode = mode_;
-    result.preedit = buffer_;
+    result.preedit = buffer_ + symbols_;
     result.highlight = -1;
     displayed_.clear();
     rimeCount_ = 0;
@@ -895,7 +938,7 @@ class RimeEngineSession final : public EngineSession {
     if (!buffer_.empty() && revealed_ && sid_ != 0 && api() != nullptr) {
       if (stage_ > 0) {
         // 分阶段选字：只列当前音节的单字，组字框显示「已选字 + 剩余编码」。
-        result.preedit = picked_ + remainingCode();
+        result.preedit = picked_ + remainingCode() + symbols_;
         result.keepPreedit = true;
         const std::vector<std::string>& chars =
             index_->chars(syllables_[stage_]);
@@ -1012,6 +1055,8 @@ class RimeEngineSession final : public EngineSession {
 
   Mode mode_ = Mode::kChineseEmpty;
   std::string buffer_;
+  // 组字框末尾的符号（组合中误按的标点）。不送 rime，只影响显示与提交。
+  std::string symbols_;
   bool revealed_ = false;
   int highlight_ = 0;
   std::vector<Candidate> displayed_;
