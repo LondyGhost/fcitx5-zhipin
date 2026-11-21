@@ -58,6 +58,9 @@ class AbcState : public fcitx::InputContextProperty {
 
   abc::EngineSession* session() const { return session_.get(); }
 
+  // 鼠标点候选：等价于按对应数字键，复用引擎的选择逻辑。
+  void commitByDigit(int digit);
+
  private:
   void createSession();
   void setPreedit(const std::string& preedit);
@@ -103,6 +106,9 @@ class AbcEngine : public fcitx::InputMethodEngine {
 
  private:
   AbcState* stateFor(fcitx::InputContext* ic);
+  // 中英文切换热键是否是「单击」：按下后没有配合其它键，释放才算切换。
+  // 否则 Shift+A 这种大写输入会顺带切模式。
+  bool isModeSwitchTap(const fcitx::Key& key, bool isRelease);
   void loadUserConfig();
   // 把 fcitx5 配置项转换到引擎运行配置，并重建所有上下文的会话。
   void applyFcitxConfig();
@@ -118,6 +124,9 @@ class AbcEngine : public fcitx::InputMethodEngine {
   ModeSwitchKey modeSwitchKey_ = ModeSwitchKey::kShift;
   bool preeditInClient_ = true;
   bool useRime_ = false;
+  // 切换键的单击检测状态。
+  bool modPressed_ = false;
+  bool modUsed_ = false;
 };
 
 class AbcEngineFactory : public fcitx::AddonFactory {

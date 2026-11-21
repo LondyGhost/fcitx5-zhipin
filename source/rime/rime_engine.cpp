@@ -177,6 +177,7 @@ class SingleCharIndex {
 
   // 退出前必须显式销毁会话：librime 的 Service 析构会对残留会话崩溃。
   void reset() {
+    std::lock_guard<std::mutex> lock(mutex_);
     if (sid_ != 0 && api() != nullptr) api()->destroy_session(sid_);
     sid_ = 0;
     cache_.clear();
@@ -184,6 +185,8 @@ class SingleCharIndex {
 
   // 该串作为音节时的单字候选（懒查询 + 缓存）。
   const std::vector<std::string>& chars(const std::string& syllable) {
+    // 预热线程和主线程共用同一个 oracle 会话，必须串行化。
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = cache_.find(syllable);
     if (it != cache_.end()) return it->second;
 
@@ -224,6 +227,7 @@ class SingleCharIndex {
   }
 
  private:
+  std::mutex mutex_;
   RimeSessionId sid_ = 0;
   std::map<std::string, std::vector<std::string>> cache_;
 };
@@ -260,9 +264,8 @@ bool segmentPart(const std::string& code, std::vector<std::string>* out) {
 
 // 支持 ' 作为音节分隔符：按 ' 分段后分别切分，结果拼平（分隔符本身不留在
 // 音节表里，只用于强制断点）。例：shan'an -> ["shan","an"]。
-bool segmentAll(const std::string& code, SingleCharIndex* index,
+bool segmentAll(const std::string& code,
                 std::vector<std::string>* out) {
-  (void)index;
   out->clear();
   std::size_t start = 0;
   while (true) {
@@ -282,15 +285,6 @@ bool segmentAll(const std::string& code, SingleCharIndex* index,
     start = sep + 1;
   }
   return !out->empty();
-}
-
-// 首音节；切不开返回 false。当前未使用（保留给后续按音节分组）。
-[[maybe_unused]] bool firstSyllable(const std::string& code,
-                                    SingleCharIndex* index, std::string* out) {
-  std::vector<std::string> syllables;
-  if (!segmentAll(code, index, &syllables) || syllables.empty()) return false;
-  *out = syllables.front();
-  return true;
 }
 
 // ---------------- 会话 ----------------
@@ -1029,7 +1023,7 @@ class RimeEngineSession final : public EngineSession {
         if (result.page == 0) injectUserPhrases();
 
         // 音节切分：分阶段选字与「词尽出字」都要用，这里保证每次都算好。
-        if (syllables_.empty()) segmentAll(buffer_, index_, &syllables_);
+        if (syllables_.empty()) segmentAll(buffer_, &syllables_);
 
         // 智能ABC 语义：**所有词翻完**（rime 最后一页）之后才出首音节单字，
         // 并填满本页剩余位置。Rime 自己也可能给几个字，先按内容去重。
@@ -1108,6 +1102,7 @@ class RimeEngineSession final : public EngineSession {
 // 进程级单例：会话共享的音节索引。
 SingleCharIndex g_singleIndex;
 
+
 }  // namespace
 
 bool initializeRime(const RimeOptions& options) {
@@ -1124,13 +1119,25 @@ bool initializeRime(const RimeOptions& options) {
   fillTraits(&traits, g_options);
   api()->setup(&traits);
   api()->initialize(&traits);
-  // 不强制 full check：build/ 已就绪时几乎瞬时完成。
+  // 不强制 full check：build/ 已就绪时维护线程几乎立刻结束。
+  // 这里先不 join —— 首次部署（没有 build/）可能要十几秒，同步等待会把
+  // fcitx5 启动卡住。只有在会话/方案拿不到时才 join 并重试。
   api()->start_maintenance(0);
-  api()->join_maintenance_thread();
 
   RimeSessionId probe = api()->create_session();
-  if (probe == 0) return g_ready = false;
-  api()->select_schema(probe, g_options.schemaId.c_str());
+  if (probe == 0) {
+    api()->join_maintenance_thread();
+    probe = api()->create_session();
+    if (probe == 0) return g_ready = false;
+  }
+  if (!api()->select_schema(probe, g_options.schemaId.c_str())) {
+    // 方案还没部署完：等维护线程收尾再试一次。
+    api()->join_maintenance_thread();
+    if (!api()->select_schema(probe, g_options.schemaId.c_str())) {
+      api()->destroy_session(probe);
+      return g_ready = false;
+    }
+  }
   g_singleIndex.setSession(probe);
 
   // librime 的 Service 静态析构遇到残留会话会段错误。
@@ -1146,6 +1153,7 @@ void finalizeRime() {
   if (!g_ready || api() == nullptr) return;
   // 先销毁我们持有的会话，再 finalize；否则 librime 退出清理会段错误。
   g_singleIndex.reset();
+  api()->join_maintenance_thread();
   api()->finalize();
   g_ready = false;
 }

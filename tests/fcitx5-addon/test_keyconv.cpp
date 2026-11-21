@@ -37,10 +37,12 @@ void testLetters() {
   auto lower = toKeyCommand(key(keysym::kLowerA), ModeSwitchKey::kShift);
   expect(lower.code == KeyCode::kCharacter && lower.unicode == U'a', "a -> a");
 
+  // Shift+字母 不再转小写进缓冲：它走「未处理键」，由核心提交当前编码后
+  // 把大写字母原样送进应用（README 的「Shift+字母 上屏字母」）。
   auto upper = toKeyCommand(key(keysym::kUpperZ, state::kShift),
                             ModeSwitchKey::kShift);
-  expect(upper.code == KeyCode::kCharacter && upper.unicode == U'z',
-         "Shift+Z normalizes to z");
+  expect(upper.code == KeyCode::kUnknown,
+         "Shift+Z is unknown (letters pass through, not buffered)");
 
   auto ctrl = toKeyCommand(key(keysym::kLowerA, state::kCtrl),
                            ModeSwitchKey::kShift);

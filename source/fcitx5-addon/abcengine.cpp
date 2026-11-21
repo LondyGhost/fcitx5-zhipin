@@ -8,6 +8,7 @@
 #include "abcengine.h"
 
 #include <cstdlib>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -132,31 +133,33 @@ std::vector<std::string> candidateLabels() {
   return labels;
 }
 
-bool isConfiguredModifierRelease(const fcitx::Key& key,
-                                 ModeSwitchKey modeSwitchKey) {
-  const uint32_t sym = static_cast<uint32_t>(key.sym());
+bool isModeSwitchModifierSym(uint32_t sym, ModeSwitchKey modeSwitchKey) {
   switch (modeSwitchKey) {
     case ModeSwitchKey::kShift:
-      return (sym == keysym::kShiftL || sym == keysym::kShiftR) &&
-             (key.isReleaseOfModifier(fcitx::Key("Shift_L")) ||
-              key.isReleaseOfModifier(fcitx::Key("Shift_R")));
+      return sym == keysym::kShiftL || sym == keysym::kShiftR;
     case ModeSwitchKey::kControl:
-      return (sym == keysym::kControlL || sym == keysym::kControlR) &&
-             (key.isReleaseOfModifier(fcitx::Key("Control_L")) ||
-              key.isReleaseOfModifier(fcitx::Key("Control_R")));
+      return sym == keysym::kControlL || sym == keysym::kControlR;
     case ModeSwitchKey::kAlt:
-      return (sym == keysym::kAltL || sym == keysym::kAltR) &&
-             (key.isReleaseOfModifier(fcitx::Key("Alt_L")) ||
-              key.isReleaseOfModifier(fcitx::Key("Alt_R")));
+      return sym == keysym::kAltL || sym == keysym::kAltR;
     case ModeSwitchKey::kSuper:
-      return (sym == keysym::kSuperL || sym == keysym::kSuperR) &&
-             (key.isReleaseOfModifier(fcitx::Key("Super_L")) ||
-              key.isReleaseOfModifier(fcitx::Key("Super_R")));
+      return sym == keysym::kSuperL || sym == keysym::kSuperR;
     case ModeSwitchKey::kNone:
       return false;
   }
   return false;
 }
+
+// 可点击候选：select() 等价于按对应数字键，完整走引擎的选择逻辑
+// （分阶段选字、词组记忆、rime 词频都照常）。
+class DigitCandidateWord : public fcitx::CandidateWord {
+ public:
+  DigitCandidateWord(fcitx::Text text, std::function<void()> action)
+      : fcitx::CandidateWord(std::move(text)), action_(std::move(action)) {}
+  void select(fcitx::InputContext* /*ic*/) const override { action_(); }
+
+ private:
+  std::function<void()> action_;
+};
 
 }  // namespace
 
@@ -284,12 +287,22 @@ void AbcState::setCandidates(const std::vector<std::string>& candidates,
     if (static_cast<int32_t>(i) == highlight) {
       text += " \u2713";
     }
-    list->append<fcitx::DisplayOnlyCandidateWord>(fcitx::Text(text));
+    const int digit = static_cast<int>(i) + 1;
+    list->append<DigitCandidateWord>(fcitx::Text(text),
+                                     [this, digit]() { commitByDigit(digit); });
   }
   if (highlight >= 0 && highlight < static_cast<int32_t>(candidates.size())) {
     list->setGlobalCursorIndex(highlight);
   }
   ic_->inputPanel().setCandidateList(std::move(list));
+}
+
+void AbcState::commitByDigit(int digit) {
+  if (session_ == nullptr || digit < 1 || digit > 9) return;
+  abc::KeyCommand cmd;
+  cmd.code = abc::KeyCode::kDigit;
+  cmd.digit = static_cast<uint8_t>(digit);
+  apply(session_->handle(cmd));
 }
 
 void AbcState::clearUi() {
@@ -312,6 +325,14 @@ AbcEngine::~AbcEngine() = default;
 
 void AbcEngine::loadUserConfig() {
 #if ABC_ADDON_HAS_RIME
+  // fcitx5 没有 addon 冲突声明机制，只能运行时检查并告警：
+  // 两个 addon 在同一进程里各自 setup/initialize 同一个 librime 单例，
+  // 还共用 ~/.local/share/fcitx5/rime，同时启用会互相踩。
+  if (instance_->addonManager().addon("rime", false) != nullptr) {
+    FCITX_WARN() << "abc: fcitx5-rime addon is also enabled — both share "
+                    "librime's process-wide state and user data dir. Disable "
+                    "one of them (fcitx5 配置工具 → 输入法) to avoid conflicts.";
+  }
   useRime_ = abc::initializeRime(rimeOptions());
   if (useRime_) {
     FCITX_INFO() << "abc: librime backend ready (schema=abc)";
@@ -454,6 +475,25 @@ AbcState* AbcEngine::stateFor(fcitx::InputContext* ic) {
   return ic->propertyFor(&factory_);
 }
 
+bool AbcEngine::isModeSwitchTap(const fcitx::Key& key, bool isRelease) {
+  if (modeSwitchKey_ == ModeSwitchKey::kNone) return false;
+  const uint32_t sym = static_cast<uint32_t>(key.sym());
+  if (!isModeSwitchModifierSym(sym, modeSwitchKey_)) {
+    // 其它键按下说明这个修饰键是「配合」用的（Shift+A），不算单击。
+    if (modPressed_ && !isRelease) modUsed_ = true;
+    return false;
+  }
+  if (!isRelease) {
+    modPressed_ = true;
+    modUsed_ = false;
+    return false;
+  }
+  const bool tap = modPressed_ && !modUsed_;
+  modPressed_ = false;
+  modUsed_ = false;
+  return tap;
+}
+
 void AbcEngine::keyEvent(const fcitx::InputMethodEntry& entry,
                          fcitx::KeyEvent& event) {
   FCITX_UNUSED(entry);
@@ -470,13 +510,19 @@ void AbcEngine::keyEvent(const fcitx::InputMethodEntry& entry,
     return;
   }
 
+  const uint32_t sym = static_cast<uint32_t>(key.sym());
+  // 切换键本身按下时不进状态机：否则会被当成「未处理键」把拼音提交掉。
+  if (!event.isRelease() && isModeSwitchModifierSym(sym, modeSwitchKey_)) {
+    return;
+  }
+  // 只有「按下后没配合其它键」的释放才算切换（Shift+A 不该切模式）。
+  const bool tap = isModeSwitchTap(key, event.isRelease());
+
   KeyInput input;
-  input.keysym = static_cast<uint32_t>(key.sym());
+  input.keysym = sym;
   input.states = static_cast<uint32_t>(key.states().toInteger());
   input.isRelease = event.isRelease();
-  if (input.isRelease) {
-    input.isModifierRelease = isConfiguredModifierRelease(key, modeSwitchKey_);
-  }
+  input.isModifierRelease = tap;
 
   const KeyCommand command = toKeyCommand(input, modeSwitchKey_);
   // 按键释放事件不进入状态机。

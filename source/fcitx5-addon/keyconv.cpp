@@ -109,13 +109,16 @@ KeyCommand toKeyCommand(const KeyInput& input, ModeSwitchKey modeSwitchKey) {
     return command;
   }
 
-  const bool upper = sym >= keysym::kUpperA && sym <= keysym::kUpperZ;
-  const bool lower = sym >= keysym::kLowerA && sym <= keysym::kLowerZ;
-  if (upper || lower) {
-    // 推荐形式：大写规范化为小写后交给核心（engine.md 2.1）。
+  if (sym >= keysym::kLowerA && sym <= keysym::kLowerZ) {
     command.code = KeyCode::kCharacter;
-    command.unicode = lower ? sym : sym + (keysym::kLowerA - keysym::kUpperA);
+    command.unicode = sym;
     return command;
+  }
+  // 大写字母（Shift+字母 或 CapsLock）：不组词，按未处理键交给核心。
+  // 核心会先提交当前编码，再把字母原样送进应用——这就是「Shift+字母 上屏字母」
+  // 的反悔通道。不能像以前那样转小写当 kCharacter，否则 Shift+A 会变成打拼音 a。
+  if (sym >= keysym::kUpperA && sym <= keysym::kUpperZ) {
+    return command;  // kUnknown
   }
 
   // 主键盘数字与小键盘数字等价；1..9 选择候选，0 是标点。

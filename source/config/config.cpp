@@ -82,6 +82,9 @@ struct Parser {
     if (v == "true" || v == "false") {
       *target = (v == "true");
     } else {
+      // 提示说「using default」就得真的复位，否则同一 key 先 true 后非法时
+      // 会保留 true，和提示矛盾。
+      *target = (std::string(defaultText) == "true");
       warn(lineNo, key, std::string("expected true/false, using default ") +
                             defaultText);
     }
